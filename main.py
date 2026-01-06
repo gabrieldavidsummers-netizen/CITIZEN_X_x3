@@ -521,21 +521,6 @@ RAW_WORDS = [
 ]
   
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def initialize_lexicon(word_list):
     """
     Creates the non-linear, randomized mapping that ensures 
@@ -598,3 +583,69 @@ def decrypt_from_psi(psi_string, pillar_key="1"):
             decoded.append(token) # Pass through non-PSI text
             
     return " ".join(decoded)
+
+# ==========================================
+# SECTION 4: THE INTERFACE (KIVY)
+# ==========================================
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.core.window import Window
+
+class CitizenXApp(App):
+    def build(self):
+        self.title = "CITIZEN_X"
+        Window.clearcolor = (0.05, 0.05, 0.05, 1) # Dark mode
+        
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        # Header
+        layout.add_widget(Label(
+            text="[ CITIZEN_X : SIG-13579 ]", 
+            font_size='20sp', 
+            color=(0, 1, 0, 1),
+            size_hint_y=None,
+            height=50
+        ))
+        
+        # Input Area
+        self.input_box = TextInput(
+            hint_text="Enter text to Encrypt/Decrypt...",
+            background_color=(0.1, 0.1, 0.1, 1),
+            foreground_color=(1, 1, 1, 1),
+            font_size='16sp'
+        )
+        layout.add_widget(self.input_box)
+        
+        # Action Buttons
+        btn_layout = BoxLayout(size_hint_y=None, height=100, spacing=10)
+        
+        enc_btn = Button(text="ENCRYPT", background_color=(0.2, 0.5, 0.2, 1))
+        enc_btn.bind(on_press=self.run_encryption)
+        
+        dec_btn = Button(text="DECRYPT", background_color=(0.5, 0.2, 0.2, 1))
+        dec_btn.bind(on_press=self.run_decryption)
+        
+        btn_layout.add_widget(enc_btn)
+        btn_layout.add_widget(dec_btn)
+        layout.add_widget(btn_layout)
+        
+        return layout
+
+    def run_encryption(self, instance):
+        text = self.input_box.text
+        if text:
+            result = encrypt_to_psi(text)
+            self.input_box.text = result
+
+    def run_decryption(self, instance):
+        text = self.input_box.text
+        if text:
+            result = decrypt_from_psi(text)
+            self.input_box.text = result
+
+if __name__ == "__main__":
+    CitizenXApp().run()
+
