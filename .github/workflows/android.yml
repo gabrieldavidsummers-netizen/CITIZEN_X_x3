@@ -2,6 +2,8 @@ name: Build Citizen X
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -22,8 +24,11 @@ jobs:
 
       - name: Build with Buildozer
         run: |
+          # Ensure the runner can find the buildozer command
           export PATH=$PATH:$HOME/.local/bin
-          buildozer -v android debug
+          
+          # 'yes |' automatically accepts the Android SDK licenses
+          yes | buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
