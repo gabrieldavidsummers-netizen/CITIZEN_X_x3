@@ -1,26 +1,22 @@
-app_name: "CITIZEN_X"
+app_name: "citizen-x"
 deployment_metadata:
   version: "1.0.0-Σ∞"
   sync_id: "98628-03482-53421"
-  lexicon_status: "HARD_CODED_VAULT_ACTIVE"
+  lexicon_status: "HARD_CODED_IN_MAIN"
 
 services:
   main_brain:
-    image: "CITIZEN_X.png"
-    container_name: "citizen_x_instance"
+    image: "citizen_x.png"
+    container_name: "citizen-x-instance"
     restart: "unless-stopped"
     environment:
-      - VAULT_SYNC=FALSE
       - DATA_SOURCE=INTERNAL_LIST
-      - SEQUENCE_SEED=3141592653
       - PROTOCOL=DEADWOOD_MASK
-    volumes:
-      - ./lexicon.json:/data/vault/lexicon.json
+    # No volumes needed - data is inside the image
     networks:
       - encrypted_mesh
 
 networks:
   encrypted_mesh:
     driver: bridge
-
-# Sequence Validation: 08651, 32823, 06647, 11235, 81321, [HARDCODE_DEPLOY_READY]
+    
