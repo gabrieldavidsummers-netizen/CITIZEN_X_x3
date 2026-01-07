@@ -5,7 +5,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Switching to 22.04 for maximum compatibility with Buildozer
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -16,39 +17,20 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            autoconf \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
-            cmake \
-            libffi-dev \
-            libssl-dev \
-            libsqlite3-dev \
-            tk-dev \
-            libbz2-dev \
-            libreadline-dev \
-            libgdbm-dev \
-            libdb5.3-dev \
-            libexpat1-dev \
-            liblzma-dev \
-            uuid-dev
+          sudo apt-get update -q
+          sudo apt-get install -y -qq \
+            git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
+            libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
+            libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
           pip install --user --upgrade buildozer cython virtualenv
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Pre-accept licenses and wipe any corrupted previous attempts
+          # Pre-accept licenses
           mkdir -p ~/.android && touch ~/.android/repositories.cfg
+          # Clean and Build
           buildozer android clean
           yes | buildozer -v android debug
         env:
