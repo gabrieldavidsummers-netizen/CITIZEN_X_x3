@@ -1,29 +1,30 @@
 [app]
 
 # (str) Title of your application
-title = CITIZEN_X
+title = CITIZEN_X : SIG-13579
 
 # (str) Package name
-package.name = citizen_x
+package.name = citizen_x_sovereign
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.vault
+package.domain = org.glitch
 
 # (str) Source code where the main.py lives
 source.dir = .
 
-# (list) Source files to include (let's ensure the lexicon is packed)
-source.include_exts = py,png,jpg,kv,atlas,json
+# (list) Source files to include
+source.include_exts = py,png,jpg,kv,atlas,json,txt
 
 # (list) Application requirements
-# Note: Ensure you have any specific encryption libs here if needed
-requirements = python3,kivy,hostpython3
+# Added openssl for potential secure socket layer logic
+requirements = python3,kivy==2.3.0,hostpython3,openssl
 
 # (str) Application versioning
-version = 1.0.0-Σ∞
+version = 1.0.0
 
 # (list) Permissions
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
+# WAKE_LOCK ensures the logic doesn't time out during heavy processing
+android.permissions = INTERNET, WAKE_LOCK
 
 # (int) Orientation
 orientation = portrait
@@ -31,16 +32,12 @@ orientation = portrait
 # (bool) Indicate if the application should be fullscreen
 fullscreen = 1
 
-# (str) Custom image for the loader
-# presplash.filename = %(source.dir)s/CITIZEN_X.png
+# (list) Android archs to build for (Standard for most modern phones)
+android.archs = arm64-v8a, armeabi-v7a
 
-# (str) Icon of the application
-# icon.filename = %(source.dir)s/CITIZEN_X.png
+# (bool) Allow backup
+android.allow_backup = False
 
 [buildozer]
-
-# (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
 log_level = 2
-
-# (int) Display warning if buildozer is run as root (0 = off, 1 = on)
 warn_on_root = 1
