@@ -1,5 +1,4 @@
 import random
-import json
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
@@ -7,9 +6,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.core.window import Window
 
-# ==========================================
-# SECTION 1: SOVEREIGN CONSTANTS
-# ==========================================
+# --- SECTION 1: SOVEREIGN CONSTANTS ---
 SIG = "13579"
 FOUNDATION = 135792468
 PILLARS = {"1": 609, "2": 5150, "3": 1978, "4": 666, "5": 3092}
@@ -21,10 +18,8 @@ VARIANT_MAP = {
 }
 REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars}
 
-# ==========================================
-# SECTION 2: THE LEXICON (4,000+ WORD BLOCK)
-# ==========================================
-# Paste your massive word list inside these brackets
+# --- SECTION 2: THE LEXICON PAYLOAD ---
+# PASTE YOUR 4000+ WORDS HERE
 RAW_WORDS = [
     'absence', 'anchor', 'architect', 'codebase', 'compressed_seed', 'continuity', 'control', 'domain',
     'ethos', 'exploitation', 'feat', 'final', 'firewall', 'folly', 'glutton', 'gumption', 'guardian',
@@ -522,36 +517,32 @@ RAW_WORDS = [
     'crave', 'crayon', 'creak', 'creature', 'creed', 'creep', 'cremate', 'creole', 'crescent', 'crest',
     'crib', 'cried', 'crimp', 'crimson', 'cringe', 'crinkle', 'crisp', 'croak', 'crochet', 'crock',
     'crocus', 'crony', 'crook', 'crouch', 'croup', 'crow', 'crown', 'crude', 'crumb', 'crumble',
-    'crumpet', 'crunch', 'crusade', 'crust', 'crutch', 'crux', '__main__'
-]
+    'crumpet', 'crunch', 'crusade', 'crust', 'crutch', 'crux', '__main__']
 
 def initialize_lexicon(word_list):
-    random.seed(13579)
+    random.seed(13579) # The Genetic Seed
     unique = sorted(list(set([w.lower().strip() for w in word_list])))
     shuffled = list(unique)
     random.shuffle(shuffled)
-    id_pool = random.sample(range(10000, 70000), len(shuffled))
+    id_pool = random.sample(range(10000, 99999), len(shuffled))
     lex = {str(id_val): word for id_val, word in zip(id_pool, shuffled)}
     rev_lex = {word: str(id_val) for id_val, word in zip(id_pool, shuffled)}
     return lex, rev_lex
 
 LEXICON, REVERSE_LEXICON = initialize_lexicon(RAW_WORDS)
 
-# ==========================================
-# SECTION 3: TRANSFORMATION LOGIC
-# ==========================================
-
+# --- SECTION 3: CORE TRANSFORMATION ---
 def encrypt_to_psi(plaintext, pillar_key="1"):
     shift = PILLARS.get(pillar_key, 609)
     output = []
     for word in plaintext.lower().split():
         token_id = REVERSE_LEXICON.get(word)
         if token_id:
-            math_val = str(FOUNDATION + shift + int(token_id))
-            alien = "".join(random.choice(VARIANT_MAP[c]) for c in math_val)
+            val = str(FOUNDATION + shift + int(token_id))
+            alien = "".join(random.choice(VARIANT_MAP[c]) for c in val)
             output.append(f"{SIG}{alien}")
         else:
-            output.append("[?]")
+            output.append(f"[{word}]")
     return " ".join(output)
 
 def decrypt_from_psi(psi_string, pillar_key="1"):
@@ -562,7 +553,7 @@ def decrypt_from_psi(psi_string, pillar_key="1"):
             try:
                 raw_nums = "".join(REVERSE_MAP.get(c, c) for c in token[len(SIG):])
                 target_id = str(int(raw_nums) - FOUNDATION - shift)
-                word = LEXICON.get(target_id, "[UNKNOWN]")
+                word = LEXICON.get(target_id, "???")
                 decoded.append(word.upper())
             except:
                 decoded.append("ERR")
@@ -570,49 +561,34 @@ def decrypt_from_psi(psi_string, pillar_key="1"):
             decoded.append(token)
     return " ".join(decoded)
 
-# ==========================================
-# SECTION 4: THE INTERFACE (KIVY)
-# ==========================================
+# --- SECTION 4: INTERFACE ---
 class CitizenXApp(App):
     def build(self):
         self.title = "CITIZEN_X"
         Window.clearcolor = (0.05, 0.05, 0.05, 1)
-        layout = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        layout.add_widget(Label(
-            text="[ CITIZEN_X : SIG-13579 ]", 
-            font_size='20sp', color=(0, 1, 0, 1),
-            size_hint_y=None, height=50
-        ))
+        layout.add_widget(Label(text="[ CITIZEN_X : SIG-13579 ]", color=(0, 1, 0, 1), size_hint_y=None, height=40))
         
-        self.input_box = TextInput(
-            hint_text="Enter text to Encrypt/Decrypt...",
-            background_color=(0.1, 0.1, 0.1, 1),
-            foreground_color=(1, 1, 1, 1), font_size='16sp'
-        )
+        self.input_box = TextInput(background_color=(0.1, 0.1, 0.1, 1), foreground_color=(1, 1, 1, 1), font_size='18sp')
         layout.add_widget(self.input_box)
         
-        btn_layout = BoxLayout(size_hint_y=None, height=100, spacing=10)
-        enc_btn = Button(text="ENCRYPT", background_color=(0.2, 0.5, 0.2, 1))
-        enc_btn.bind(on_press=self.run_encryption)
-        dec_btn = Button(text="DECRYPT", background_color=(0.5, 0.2, 0.2, 1))
-        dec_btn.bind(on_press=self.run_decryption)
+        btn_box = BoxLayout(size_hint_y=None, height=60, spacing=10)
+        btn_enc = Button(text="ENCRYPT", background_color=(0.2, 0.4, 0.2, 1))
+        btn_enc.bind(on_press=lambda x: self.process(True))
+        btn_dec = Button(text="DECRYPT", background_color=(0.4, 0.2, 0.2, 1))
+        btn_dec.bind(on_press=lambda x: self.process(False))
         
-        btn_layout.add_widget(enc_btn)
-        btn_layout.add_widget(dec_btn)
-        layout.add_widget(btn_layout)
+        btn_box.add_widget(btn_enc)
+        btn_box.add_widget(btn_dec)
+        layout.add_widget(btn_box)
         return layout
 
-    def run_encryption(self, instance):
-        if self.input_box.text:
-            self.input_box.text = encrypt_to_psi(self.input_box.text)
-
-    def run_decryption(self, instance):
-        if self.input_box.text:
-            self.input_box.text = decrypt_from_psi(self.input_box.text)
+    def process(self, encrypt):
+        text = self.input_box.text
+        if text:
+            self.input_box.text = encrypt_to_psi(text) if encrypt else decrypt_from_psi(text)
 
 if __name__ == "__main__":
     CitizenXApp().run()
-
-  
 
