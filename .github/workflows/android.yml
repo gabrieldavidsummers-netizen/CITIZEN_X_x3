@@ -16,14 +16,38 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev libsqlite3-dev tk-dev
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            python3-pip \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo6 \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            libsqlite3-dev \
+            tk-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libgdbm-dev \
+            libdb5.3-dev \
+            libexpat1-dev \
+            liblzma-dev \
+            uuid-dev
           pip install --user --upgrade buildozer cython virtualenv
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Pre-accept licenses and clean previous failed artifacts
+          # Pre-accept licenses and wipe any corrupted previous attempts
           mkdir -p ~/.android && touch ~/.android/repositories.cfg
           buildozer android clean
           yes | buildozer -v android debug
