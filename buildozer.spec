@@ -3,11 +3,10 @@ title = Citizen X
 package.name = citizenx
 package.domain = org.synthesis
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json
+source.include_exts = py,png,jpg,kv,atlas,json,db
 version = 0.1
 
-# SOVEREIGN REQUIREMENTS
-requirements = python3,kivy==2.3.0,requests,urllib3,certifi,charset-normalizer,idna
+requirements = python3,kivy==2.3.0,requests,certifi,sqlite3
 
 orientation = portrait
 fullscreen = 0
@@ -15,7 +14,9 @@ android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
-# NDK/SDK Anchors
+# ICON ANCHOR: Pointing to your specific filename
+icon.filename = %(source.dir)s/CITIZEN_X.png
+
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
