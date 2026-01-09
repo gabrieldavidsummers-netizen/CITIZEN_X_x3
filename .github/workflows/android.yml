@@ -21,30 +21,37 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      # BYPASS: Using the hardened action instead of 'apt install' to fix the cacerts error
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
             libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
             libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
+
+      - name: Install Build Tools
+        run: |
           pip install --user --upgrade buildozer cython virtualenv python-for-android
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Ensure android config exists to prevent NDK prompt hang
-          mkdir -p ~/.android && touch ~/.android/repositories.cfg
-          # STRIKE: Skip 'clean' to avoid the 27-second brick. 
-          # We use 'yes |' to auto-accept SDK licenses.
+          # Pre-accepting SDK licenses manually to prevent the 7-minute hang
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          
           yes | buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+          # Pointing directly to the runner's pre-installed SDK
+          ANDROID_HOME: /usr/local/lib/android/sdk
           APP_ANDROID_ACCEPT_SDK_LICENSE: 1
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CITIZEN_X_Binary
-          path: bin/*.apk
           
