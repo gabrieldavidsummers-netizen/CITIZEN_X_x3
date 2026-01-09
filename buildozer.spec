@@ -1,18 +1,17 @@
-[app]
-title = CITIZEN_X
-package.name = citizen_x_x3
-package.domain = org.sovereign
-source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json
-requirements = python3,kivy==2.3.0,hostpython3,openssl,sqlite3
-version = 1.0.0
-orientation = portrait
-fullscreen = 1
-android.archs = arm64-v8a, armeabi-v7a
-android.permissions = INTERNET, WAKE_LOCK, WRITE_EXTERNAL_STORAGE
-android.allow_backup = False
-android.accept_sdk_license = True
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
+      - name: Build with Buildozer
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          # 1. Pre-accept licenses by creating the license files manually
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          
+          # 2. Force Buildozer to run in non-interactive mode
+          # We use 'yes' again as a secondary fail-safe
+          yes | buildozer -v android debug
+        env:
+          BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+          # Anchor the SDK/NDK path for the runner
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          APP_ANDROID_ACCEPT_SDK_LICENSE: 1
+          
