@@ -1,28 +1,37 @@
+name: Build Citizen X
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install Build Tools
         run: |
-          pip install --user --upgrade buildozer cython virtualenv python-for-android
-          # Crucial: Force the path to update for the next steps
+          pip install --user --upgrade buildozer cython virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
-          # 1. Anchor the Java Home from the previous step
-          export JAVA_HOME=$JAVA_HOME_17_X64
-          export PATH=$JAVA_HOME/bin:$PATH
-          
-          # 2. Fix the Android SDK location
           export ANDROID_HOME=/usr/local/lib/android/sdk
-          export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
-          
-          # 3. Pre-sign Licenses (The hash strike)
           mkdir -p "$ANDROID_HOME/licenses" || true
           echo -e "\n24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
-          
-          # 4. Execute with absolute path and verbose logging
-          # We use '--profile' to force a fresh look at the spec
           ~/.local/bin/buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
-          APP_ANDROID_ACCEPT_SDK_LICENSE: 1
           
