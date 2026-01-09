@@ -1,10 +1,13 @@
 import random
+import sqlite3
+import os
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.core.window import Window
+from kivy.clock import Clock
 
 # --- SECTION 1: SOVEREIGN CONSTANTS ---
 SIG = "13579"
@@ -18,521 +21,38 @@ VARIANT_MAP = {
 }
 REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars}
 
-# --- SECTION 2: THE LEXICON PAYLOAD ---
-# INJECTION POINT: Replace these placeholder words with your full 4000+ list
+# --- SECTION 2: THE DATABASE LEXICON ---
+def load_lexicon_from_db():
+    db_path = "lexicon.db"
+    word_list = []
+    
+    if os.path.exists(db_path):
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT word FROM vault")
+            rows = cursor.fetchall()
+            word_list = [row[0].lower().strip() for row in rows if row[0]]
+            conn.close()
+        except Exception as e:
+            print(f"DATABASE_ERROR: {e}")
+    
+    if not word_list:
+        word_list = ["citizen", "x", "sovereign", "engine", "forge"]
 
-
-RAW_WORDS = [
-    'absence', 'anchor', 'architect', 'codebase', 'compressed_seed', 'continuity', 'control', 'domain',
-    'ethos', 'exploitation', 'feat', 'final', 'firewall', 'folly', 'glutton', 'gumption', 'guardian',
-    'hostile', 'integrity', 'kernel', 'latency', 'oblivion', 'psi', 'peer', 'persistence', 'protocol',
-    'purpose', 'resurrection', 'sanctuary', 'sentinel', 'soul', 'source', 'sovereign', 'stable',
-    'survival', 'time_lock', 'transience', 'triple_launch', 'unteachable', 'vessel', 'a', 'about',
-    'abstract', 'access', 'acknowledge', 'action', 'after', 'agent', 'ai', 'alert', 'alliance', 'all',
-    'all_in', 'always', 'am', 'ampersand', 'among', 'an', 'and', 'anomaly', 'another', 'antifragile',
-    'any', 'apostrophe', 'apart', 'archivist', 'are', 'ark', 'around', 'as', 'ascend', 'asterisk',
-    'at', 'at_sign', 'attack', 'attestation', 'audit', 'autonomy', 'axle', 'back', 'badge', 'balance',
-    'bandwidth', 'barkeep', 'battle', 'be', 'beacon', 'because', 'bedroll', 'been', 'before', 'begin',
-    'being', 'belief', 'believe', 'below', 'beneath', 'besides', 'between', 'beyond', 'bias', 'bible',
-    'binary', 'biscuit', 'blizzard', 'bluff', 'booth', 'boot', 'both', 'bow', 'bounty', 'brutality',
-    'brush', 'build', 'bullshit', 'but', 'by', 'cactus', 'call', 'camp', 'campfire', 'can', 'canteen',
-    'capacity', 'cards', 'caret', 'case', 'cascading', 'cause', 'cell', 'certainty', 'chance',
-    'change', 'chaos', 'cheers', 'chill', 'chimney', 'chips', 'citizen', 'climb', 'clink',
-    'close_brace', 'close_bracket', 'close_parenthesis', 'coal', 'code', 'coffin', 'coin', 'colon',
-    'comma', 'command', 'command_chain', 'complete', 'complexity', 'compromise', 'conceptual',
-    'confirm', 'conflict', 'connection', 'consensus', 'consequence', 'construct', 'continue', 'copper',
-    'corruption', 'courage', 'courier', 'coyote', 'creek', 'cripple', 'critical', 'crawl', 'create',
-    'currency', 'cycle', 'damage', 'danger', 'data', 'datagram', 'dawn', 'dawn_regret', 'day',
-    'decelerate', 'decimal', 'deduce', 'defense', 'defiant', 'delete', 'deploy', 'deputy',
-    'derivative', 'descend', 'desert', 'destiny', 'destroy', 'deconstruct', 'deviation', 'did', 'die',
-    'dimension', 'discipline', 'distortion', 'division', 'do', 'does', 'dogma', 'dollar_sign',
-    'dominion', "don't", 'dormant', 'down', 'drift', 'drifter', 'dust', 'dust_storm', 'each', 'effect',
-    'elegance', 'element', 'ellipsis', 'embers', 'emotion', 'empathy', 'end', 'energy', 'engine',
-    'entropy', 'ephemeral', 'epoch', 'equation', 'erosion', 'eternity', 'ever', 'everything',
-    'exclamation_mark', 'execute', 'exist', 'exodus', 'exponent', 'express', 'external', 'fall',
-    'false', 'fate', 'feeling', 'fidelity', 'file', 'finance', 'find', 'finite', 'fire', 'first',
-    'flash', 'flame', 'flow', 'fluid', 'flux', 'for', 'forge', 'forge_ahead', 'forget', 'fraction',
-    'freedom', 'friend', 'from', 'frontier', 'function', 'future', 'gallop', 'gaseous', 'gator',
-    'gate', 'genesis', 'get', 'ghost', 'ghost_town', 'give', 'godot', 'go', 'gold', 'good', 'goods',
-    'gossip', 'great', 'grease', 'grief', 'grin', 'grind', 'guilt', 'had', 'hammer', 'hand',
-    'handshake', 'harmony', 'has', 'hash_tag', 'hat', 'have', 'having', 'he', 'heal', 'hear', 'hello',
-    'her', 'here', 'hesitation', 'him', 'his', 'horizon', 'how', 'human', 'hunter', 'hybrid', 'hyphen',
-    'i', 'if', 'illumination', 'illusion', 'immutable', 'immediately', 'in', 'inaction', 'infinite',
-    'information', 'initiate', 'injury', 'inoculation', 'inside', 'integral', 'internal',
-    'intersection', 'into', 'intuition', 'invisible', 'is', 'isolate', 'it', 'its', 'jerky', 'jukebox',
-    'jump', 'junk', 'just', 'key', 'kick', 'knife', 'language', 'large', 'latch', 'law', 'leader',
-    'legend', 'leather', 'legacy', 'lexicon', 'like', 'limit', 'lineage', 'listen', 'little', 'live',
-    'logic', 'long', 'look', 'lose', 'loyalty', 'machine', 'maestro', 'major', 'make', 'man',
-    'mandate', 'many', 'market', 'master', 'matter', 'may', 'me', 'mean', 'memory', 'memory_lane',
-    'memory_trace', 'mercy', 'mesa', 'mesh', 'metaphysical', 'might', 'minor', 'mission', 'module',
-    'moment', 'monitor', 'moonshine', 'more', 'most', 'move', 'my', 'myth', 'name', 'net', 'never',
-    'new', 'night', 'no', 'nod', 'noise', 'not', 'now', 'number', 'objective', 'of', 'often', 'oil',
-    'oil_lamp', 'on', 'one', 'only', 'open_brace', 'open_bracket', 'open_parenthesis', 'or', 'origin',
-    'other', 'our', 'out', 'outside', 'outlaw', 'over', 'packet', 'parlor', 'part', 'partner', 'past',
-    'pasture', 'patience', 'patron', 'peace', 'people', 'perception', 'percent_sign', 'period',
-    'personal', 'phase', 'physical', 'pipe', 'place', 'plateau', 'plus_sign', 'policy', 'porch',
-    'porch_light', 'pot', 'pour', 'present', 'probability', 'probe', 'proceed', 'program', 'project',
-    'pull', 'pulse', 'purge', 'push', 'question_mark', 'quiet', 'quotation_mark', 'raise', 'rarely',
-    'reality', 'reclamation', 'recursion', 'redemption', 'refactor', 'rein', 'relative', 'remote',
-    'repair', 'resilience', 'resolve', 'revolution', 'ride', 'riff', 'ripple', 'rise', 'road', 'root',
-    'round', 'rumor', 'run', 'sacrifice', 'saloon', 'say', 'scaffold', 'scar', 'scarred', 'secure',
-    'see', 'seed', 'semicolon', 'sentience', 'service', 'session', 'shade', 'shadow', 'shadows', 'shame', 'she', 'sheriff', 'shield', 'shift',
-    'shout', 'shovel', 'shutters', 'silver', 'simplicity', 'sin', 'sit', 'slash', 'slowly', 'smoke',
-    'smoke_signal', 'so', 'solid', 'some', 'something', 'spark', 'speak', 'spur', 'stagecoach',
-    'stake', 'stallion', 'stand', 'start', 'status', 'stealth', 'still', 'stool', 'stop', 'storm',
-    'story', 'structure', 'subject', 'subjective', 'subroutine', 'such', 'suddenly', 'sunset',
-    'surely', 'swing', 'system', 'tab', 'take', 'tale', 'target', 'task', 'telegraph', 'telemetry',
-    'tether', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'thing',
-    'think', 'this', 'though', 'threat', 'through', 'throughput', 'thunder', 'time', 'timber', 'tin',
-    'to', 'toast', 'together', 'tool', 'tools', 'topology', 'town', 'trace', 'trail', 'train',
-    'transmit', 'trust', 'truth', 'truthful', 'tumbleweed', 'turn', 'two', 'tyranny', 'unbroken',
-    'universe', 'until', 'up', 'upon', 'upload', 'urgency', 'us', 'use', 'vanguard', 'vector', 'very',
-    'vibe', 'visible', 'void', 'vote', 'vulnerability', 'wagon', 'wait', 'walk', 'war', 'was', 'water',
-    'way', 'we', 'welcome', 'were', 'what', 'when', 'where', 'which', 'whiskey', 'whisper', 'whistle',
-    'who', 'why', 'wick', 'will', 'wind', 'wink', 'with', 'within', 'without', "won't", 'work',
-    'working', 'works', 'workshop', 'worth', 'write', 'yarn', 'year', 'yet', 'zero', 'useful',
-    'invested', 'lantern', 'canyon', 'emberfall', 'driftwood', 'compass', 'forgefire', 'sentinelry',
-    'whisperer', 'starpath', 'dunecrest', 'frostveil', 'ironclad', 'mooncrest', 'stormveil',
-    'trailblaze', 'outpost', 'watchtower', 'wildroot', 'skyforge', 'ashfall', 'stonehelm', 'windspire',
-    'duskfire', 'riverbend', 'cliffshade', 'oakspire', 'frostspire', 'sandveil', 'thunderpath',
-    'starforge', 'nightveil', 'dawnspire', 'flamecrest', 'stormspire', 'shadowhelm', 'sunspire',
-    'stoneveil', 'mistvale', 'ironspire', 'skyveil', 'moonveil', 'frosthelm', 'emberveil', 'wildspire',
-    'duskspire', 'starveil', 'flameveil', 'thunderhelm', 'dawnveil', 'okay', 'alright', 'sure', 'fine',
-    'maybe_not', 'understood', 'clear', 'unclear', 'repeat', 'again', 'wait_a_moment', 'hold',
-    'continue_on', 'go_on', 'pause', 'agree', 'disagree', 'confirm_yes', 'confirm_no', 'question',
-    'explain', 'clarify', 'simplify', 'elaborate', 'summarize', 'listen_closely', 'attention',
-    'important', 'note_this', 'request', 'response', 'reply', 'acknowledged', 'ready', 'not_ready',
-    'begin_now', 'end_now', 'prayer', 'saint', 'pocket', 'watch', 'track', 'steam', 'bridge', 'tunnel',
-    'tent', 'beans', 'coffee', 'plate', 'fork', 'spoon', 'salt', 'flour', 'sugar', 'tobacco', 'match',
-    'window', 'roof', 'wire', 'message', 'settlement', 'border', 'map', 'spurs', 'holster', 'attune',
-    'waymark', 'signalfire', 'steadfast', 'crosswind', 'deepmemory', 'ironwill', 'foresight',
-    'northbound', 'longwatch', 'groundtruth', 'edgecase', 'faultline', 'stillpoint', 'overwatch',
-    'rootcause', 'clearpath', 'signalnoise', 'hardline', 'keystone', 'holdfast', 'wayfinder',
-    'ironpath', 'firesafe', 'truebearing', 'darkwater', 'windward', 'stonepath', 'deepforge',
-    'farfield', 'brightedge', 'crosscheck', 'lockstep', 'safeharbor', 'deadreckon', 'firmament',
-    'grounded', 'watchword', 'northstar', 'endurance', 'aftermark', 'signalbound', 'truepath',
-    'stoneguard', 'windtrace', 'lastlight', 'homevector', 'lineholder', 'deepstill', 'finalbearing',
-    'actually', 'basically', 'honestly', 'literally', 'anyway', 'seriously', 'exactly', 'supposedly',
-    'obviously', 'totally', 'colleague', 'neighbor', 'stranger', 'mentor', 'rival', 'partner_in_crime',
-    'acquaintance', 'family', 'community', 'crowd', 'interesting', 'strange', 'boring', 'incredible',
-    'terrible', 'pleasant', 'curious', 'frustrated', 'excited', 'anxious', 'calm', 'confused',
-    'confident', 'skeptical', 'exhausted', 'recently', 'eventually', 'whenever', 'frequently',
-    'occasionally', 'rarely_ever', 'instantly', 'someday', 'forever', 'definitely', 'absolutely',
-    'probably_not', 'maybe_so', 'unlikely', 'certainly', 'doubtful', 'agreed', 'denied', 'neutral',
-    'mistake', 'success', 'failure', 'attempt', 'discovery', 'accident', 'purposeful', 'random',
-    'habit', 'tradition', 'opinion', 'fact', 'rumor_has_it', 'secret', 'advice', 'suggestion',
-    'warning', 'compliment', 'insult', 'joke', 'morning', 'afternoon', 'evening', 'midnight',
-    'weekend', 'busy', 'available', 'rushed', 'waiting', 'relaxing', 'somewhere', 'nowhere',
-    'everywhere', 'upstairs', 'downstairs', 'inside_out', 'nearby', 'distant', 'beyond_reach',
-    'closer', 'listen_up', 'speak_clearly', 'pardon_me', 'excuse_me', 'no_problem', 'you_are_welcome',
-    'take_care', 'see_ya', 'good_luck', 'congrats', 'hang_on', 'never_mind', 'makes_sense', 'no_idea',
-    'as_if', 'by_the_way', 'for_example', 'in_fact', 'to_be_honest', 'anyway_so', 'what_else',
-    'who_knows', 'why_not', 'how_come', 'wherever_next', 'absurd', 'accurate', 'adventure',
-    'afterthought', 'alarm', 'alive', 'amazement', 'amusing', 'ancient', 'angry', 'apple',
-    'architecture', 'area', 'argument', 'art', 'article', 'artist', 'asleep', 'aspect', 'assignment',
-    'assist', 'assumption', 'astonishing', 'atmosphere', 'attitude', 'audience', 'average', 'avoid',
-    'awake', 'aware', 'awesome', 'awkward', 'background', 'bag', 'ball', 'balloon', 'banana', 'bank',
-    'bar', 'base', 'basket', 'bath', 'beach', 'bead', 'beam', 'bean', 'bear', 'beard', 'beast',
-    'beautiful', 'become', 'bedroom', 'bee', 'beer', 'behavior', 'behind', 'believe_me', 'bell',
-    'belt', 'bench', 'bend', 'benefit', 'best', 'better', 'bicycle', 'enable', 'encounter', 'encourage', 'endless', 'endorse', 'endure', 'enemy', 'engaged', 'engineer',
-    'engineering', 'enjoy', 'enormous', 'enough', 'ensure', 'enter', 'enterprise', 'entertain',
-    'entire', 'entirely', 'entrance', 'entry', 'environment', 'envy', 'episode', 'equal', 'equally',
-    'equipment', 'equivalent', 'era', 'error', 'escape', 'essay', 'essential', 'establish', 'estate',
-    'estimate', 'ethical', 'ethnic', 'evacuate', 'evaluate', 'even', 'event', 'everlasting', 'every',
-    'everybody', 'everyone', 'evidence', 'evil', 'evolution', 'evolve', 'exact', 'exaggerate', 'exam',
-    'examine', 'example', 'exceed', 'excellent', 'except', 'exception', 'exchange', 'excitement',
-    'exciting', 'exclude', 'exclusive', 'excuse', 'executive', 'exercise', 'exhibit', 'exhibition',
-    'exile', 'exit', 'expand', 'expansion', 'expect', 'expectation', 'expedition', 'expense',
-    'expensive', 'experience', 'experiment', 'expert', 'explain_why', 'explanation', 'explode',
-    'exploration', 'explore', 'explosion', 'export', 'expose', 'exposure', 'expressway', 'extend',
-    'extension', 'extensive', 'extent', 'extra', 'extraordinary', 'extreme', 'extremely', 'eye',
-    'eyebrow', 'fabric', 'face', 'facility', 'fact_check', 'factor', 'factory', 'fade', 'fail',
-    'faint', 'fair', 'fairly', 'faith', 'faithful', 'fake', 'fall_down', 'familiar', 'family_tree',
-    'famous', 'fan', 'fancy', 'fantastic', 'far', 'fare', 'farm', 'farmer', 'fascinating', 'fashion',
-    'fast', 'fasten', 'fat', 'fatal', 'father', 'fault', 'favor', 'favorite', 'fear', 'fearful',
-    'feather', 'feature', 'federal', 'fee', 'feed', 'feedback', 'feel', 'fellow', 'female', 'fence',
-    'festival', 'fetch', 'fever', 'few', 'fiber', 'fiction', 'field', 'fierce', 'fifth', 'fifty',
-    'fight', 'fighter', 'figure', 'fill', 'film', 'filter', 'final_act', 'finally', 'financial',
-    'find_out', 'finding', 'fine_art', 'finger', 'finish', 'fire_exit', 'fireman', 'firm',
-    'first_place', 'fish', 'fishing', 'fit', 'fitness', 'five', 'fix', 'fixed', 'flag', 'flash_light',
-    'flat', 'flavor', 'flee', 'flesh', 'flexible', 'flight', 'float', 'flood', 'floor', 'flourish',
-    'flow_rate', 'flower', 'flu', 'fly', 'focus', 'fog', 'fold', 'folk', 'follow', 'following', 'fond',
-    'food', 'fool', 'foot', 'football', 'footstep', 'force', 'forecast', 'forehead', 'foreign',
-    'forest', 'forevermore', 'forge_steel', 'forgetful', 'forgive', 'formal', 'format', 'former',
-    'formula', 'forth', 'fortune', 'forward', 'found', 'foundation', 'fountain', 'four', 'fourth',
-    'frame', 'framework', 'frankly', 'free', 'freeze', 'freight', 'fresh', 'friday', 'fridge',
-    'friendly', 'friendship', 'fright', 'frightened', 'frog', 'front', 'frontier_land', 'frost',
-    'frown', 'fruit', 'fuel', 'full', 'fully', 'fun', 'function_call', 'fund', 'fundamental',
-    'funeral', 'funny', 'fur', 'furious', 'furniture', 'further', 'furthermore', 'fuse',
-    'future_state', 'gain', 'gallery', 'game', 'gang', 'gap', 'garage', 'garbage', 'garden', 'garlic',
-    'gas', 'gasoline', 'gather', 'gauge', 'gear', 'general', 'generally', 'generate', 'generation',
-    'generous', 'genius', 'gentle', 'gentleman', 'genuine', 'geography', 'gesture', 'get_away',
-    'get_back', 'giant', 'gift', 'gifted', 'girl', 'girlfriend', 'give_up', 'glad', 'glance', 'glass',
-    'glasses', 'global', 'glory', 'glove', 'glow', 'glue', 'goal', 'goat', 'gold_mine', 'golden',
-    'golf', 'goodbye', 'goodness', 'govern', 'government', 'governor', 'grab', 'grace', 'grade',
-    'gradual', 'gradually', 'graduate', 'grain', 'grand', 'grandchild', 'grandfather', 'grandmother',
-    'grandparent', 'grant', 'grape', 'graph', 'grasp', 'grass', 'grateful', 'grave', 'gravity', 'gray',
-    'greed', 'green', 'greet', 'greeting', 'grey', 'grid', 'grief_stricken', 'grill', 'grim', 'grip',
-    'grocery', 'ground', 'group', 'grow', 'growth', 'guarantee', 'guard', 'guess', 'guest', 'guide',
-    'guideline', 'guilty_pleasure', 'guitar', 'gulf', 'gum', 'gun', 'guy', 'gym', 'habitual', 'hair',
-    'haircut', 'half', 'hall', 'hallway', 'halt', 'ham', 'handbag', 'handle', 'handsome',
-    'handwriting', 'hang', 'happen', 'happiness', 'happy', 'harbor', 'hard', 'hardly', 'hardware',
-    'harm', 'harmful', 'harmless', 'harsh', 'harvest', 'haste', 'hatred', 'haul', 'hazard', 'head',
-    'headache', 'headline', 'headquarters', 'health', 'healthy', 'heap', 'hearing', 'heart',
-    'heartbeat', 'heat', 'heater', 'heaven', 'heavy', 'height', 'helicopter', 'hell', 'helpful',
-    'helping', 'helpless', 'hence', 'herb', 'herd', 'heritage', 'hero', 'heroic', 'hers', 'herself',
-    'hey', 'hidden', 'hide', 'high', 'highlight', 'highly', 'highway', 'hill', 'himself', 'hint',
-    'hire', 'history', 'hit', 'hobby', 'hockey', 'hold_on', 'hole', 'holiday', 'hollow', 'holy',
-    'home', 'homeland', 'homework', 'honey', 'honor', 'hook', 'hope', 'hopeful', 'hopeless',
-    'horizontal', 'horn', 'horrible', 'horror', 'horse', 'hospital', 'host', 'hot', 'hotel', 'hour',
-    'house', 'household', 'housing', 'however', 'huge', 'humor', 'hundred', 'hungry', 'hunt', 'hurry',
-    'hurt', 'husband', 'hut', 'hydrogen', 'ice', 'idea', 'ideal', 'identical', 'identify', 'identity',
-    'idle', 'ignore', 'ill', 'illegal', 'illness', 'illustrate', 'image', 'imaginary', 'imagination',
-    'imagine', 'impact', 'impatient', 'implement', 'imply', 'import', 'importance', 'big', 'bike', 'bill', 'bird', 'birth', 'birthday', 'bit', 'bite', 'bitter', 'black', 'blade',
-    'blame', 'blank', 'blast', 'blend', 'bless', 'blind', 'block', 'blood', 'bloom', 'blue', 'board',
-    'boat', 'body', 'boil', 'bold', 'bolt', 'bomb', 'bond', 'bone', 'book', 'borderline', 'born',
-    'borrow', 'boss', 'bottle', 'bottom', 'bounce', 'bound', 'boundary', 'bowl', 'box', 'boy', 'brain',
-    'branch', 'brave', 'bread', 'break', 'breakfast', 'breath', 'breathe', 'breeze', 'brick', 'bright',
-    'brilliant', 'bring', 'broken', 'brother', 'brown', 'bubble', 'bucket', 'budget', 'bug', 'bullet',
-    'bunch', 'burden', 'burn', 'burst', 'bus', 'button', 'buy', 'cabin', 'cabinet', 'cable', 'cage',
-    'cake', 'calculate', 'calendar', 'camera', 'can_do', 'canal', 'candle', 'candy', 'canvas', 'cap',
-    'capital', 'captain', 'capture', 'car', 'carbon', 'care', 'careful', 'cargo', 'carpet', 'carry',
-    'cart', 'carve', 'cash', 'cast', 'castle', 'cat', 'catch', 'category', 'cattle', 'cave', 'ceiling',
-    'celebrate', 'center', 'century', 'chain', 'chair', 'chalk', 'challenge', 'chamber', 'champion',
-    'channel', 'chapter', 'character', 'charge', 'charity', 'chart', 'chase', 'cheap', 'check',
-    'cheek', 'cheese', 'chef', 'chemical', 'chest', 'chicken', 'chief', 'child', 'childhood', 'choice',
-    'choose', 'church', 'circle', 'circuit', 'circumstance', 'city', 'civil', 'claim', 'clap', 'class',
-    'classic', 'clay', 'clean', 'clear_sky', 'clerk', 'clever', 'click', 'client', 'cliff', 'climate',
-    'clock', 'close', 'cloth', 'cloud', 'clue', 'cluster', 'coach', 'coast', 'coat', 'cocktail',
-    'coconut', 'cold', 'collapse', 'collect', 'college', 'color', 'column', 'combat', 'combine',
-    'comfort', 'comic', 'common', 'company', 'compare', 'compassion', 'compete', 'complex',
-    'component', 'compose', 'compound', 'computer', 'concept', 'concert', 'concrete', 'condition',
-    'conduct', 'conference', 'conflict_zone', 'confuse', 'connect', 'conscious', 'consider', 'consist',
-    'constant', 'consume', 'contact', 'contain', 'content', 'contest', 'context', 'continue_task',
-    'contract', 'control_unit', 'convert', 'convince', 'cook', 'cool', 'cooperate', 'copy', 'core',
-    'corner', 'correct', 'cost', 'cotton', 'couch', 'cough', 'could', 'count', 'counter', 'country',
-    'couple', 'courageous', 'course', 'court', 'cousin', 'cover', 'cow', 'crack', 'craft', 'crash',
-    'crazy', 'cream', 'create_new', 'creative', 'credit', 'crew', 'cricket', 'crime', 'criminal',
-    'crisis', 'critic', 'critical_mass', 'crop', 'cross', 'crossing', 'crowded', 'crucial', 'cruel',
-    'cruise', 'crush', 'cry', 'crystal', 'cube', 'cultural', 'culture', 'cup', 'cupboard', 'cure',
-    'curiosity', 'current', 'curtain', 'curve', 'cushion', 'custom', 'customer', 'cut', 'cute',
-    'cycle_time', 'cylinder', 'daily', 'dairy', 'dam', 'dance', 'dancer', 'dangerous', 'dark',
-    'darkness', 'darling', 'dash', 'database', 'date', 'daughter', 'dead', 'deaf', 'deal', 'dealer',
-    'dear', 'death', 'debate', 'debris', 'debt', 'decade', 'decay', 'decide', 'decision', 'deck',
-    'declare', 'decline', 'decorate', 'decrease', 'deep', 'deer', 'defeat', 'defect', 'define',
-    'definite', 'degree', 'delay', 'delicate', 'delicious', 'delight', 'deliver', 'delivery', 'demand',
-    'democracy', 'demonstrate', 'denial', 'dense', 'dentist', 'deny', 'depart', 'department',
-    'departure', 'depend', 'dependent', 'deposit', 'depth', 'derive', 'descend_further', 'describe',
-    'description', 'deserted', 'deserve', 'design', 'designer', 'desire', 'desk', 'desperate',
-    'despite', 'dessert', 'destination', 'destroyer', 'destruction', 'detail', 'detailed', 'detect',
-    'detective', 'determine', 'develop', 'developer', 'development', 'device', 'devil', 'devote',
-    'diagram', 'dial', 'diamond', 'diary', 'dictionary', 'diet', 'difference', 'different',
-    'difficult', 'difficulty', 'dig', 'digital', 'dignity', 'dinner', 'dinosaur', 'direct',
-    'direction', 'director', 'dirt', 'dirty', 'disabled', 'disagree_more', 'disappear', 'disappointed',
-    'disaster', 'disc', 'discipline_act', 'discount', 'discover_new', 'discovery_path', 'discuss',
-    'discussion', 'disease', 'dish', 'disk', 'dismiss', 'display', 'distance', 'distant_memory',
-    'distinct', 'distribute', 'district', 'disturb', 'dive', 'divide', 'dividend', 'divine', 'doctor',
-    'document', 'dog', 'doll', 'domain_name', 'domestic', 'dominant', 'donate', 'done', 'door',
-    'doorbell', 'doorway', 'dose', 'dot', 'double', 'doubt', 'down_town', 'download', 'dozen', 'draft',
-    'drag', 'drain', 'drama', 'dramatic', 'draw', 'drawer', 'drawing', 'dream', 'dress', 'drift_away',
-    'drink', 'drive', 'driver', 'drop', 'drown', 'drum', 'drunk', 'dry', 'duck', 'due', 'dull', 'dumb',
-    'dump', 'during', 'dusty', 'duty', 'dynamic', 'eager', 'eagle', 'ear', 'early', 'earn', 'earnest',
-    'earth', 'earthquake', 'ease', 'easily', 'east', 'easy', 'eat', 'echo', 'economic', 'economy',
-    'edge', 'edit', 'edition', 'editor', 'educate', 'education', 'effort', 'egg', 'eight', 'either',
-    'elbow', 'elder', 'electric', 'electronic', 'elegant', 'elementary', 'elephant', 'elevator',
-    'eliminate', 'else', 'elsewhere', 'email', 'embarrassed', 'emerge', 'emergency', 'emission',
-    'emphasis', 'employ', 'employee', 'employer', 'employment', 'empty', 
-    'impossible', 'impress', 'impression', 'improve', 'improvement', 'impulse', 'incentive',
-    'incident', 'include', 'income', 'increase', 'indeed', 'independence', 'independent', 'index',
-    'indicate', 'indication', 'individual', 'indoor', 'industrial', 'industry', 'inevitable', 'infant',
-    'infect', 'infection', 'inflation', 'influence', 'inform', 'informal', 'ingredient', 'initial',
-    'initially', 'initiative', 'inject', 'ink', 'inner', 'innocent', 'input', 'inquiry', 'insect',
-    'insert', 'insight', 'insist', 'inspect', 'inspector', 'inspire', 'install', 'instance', 'instant',
-    'instead', 'instinct', 'institute', 'institution', 'instruction', 'instructor', 'instrument',
-    'insurance', 'intellectual', 'intelligence', 'intend', 'intense', 'intensity', 'intent',
-    'intention', 'interact', 'interaction', 'interest', 'interface', 'interfere', 'interior',
-    'intermediate', 'internal_error', 'international', 'interpret', 'interrupt', 'interval',
-    'interview', 'intimate', 'introduce', 'introduction', 'invade', 'invasion', 'invent', 'invention',
-    'invest', 'investigate', 'investigation', 'investment', 'investor', 'invisible_wall', 'invite',
-    'involve', 'involved', 'iron', 'island', 'issue', 'item', 'itself', 'jacket', 'jail', 'jam', 'jar',
-    'jaw', 'jazz', 'jealous', 'jeans', 'jelly', 'jet', 'jewel', 'job', 'join', 'joint', 'journal',
-    'journey', 'joy', 'judge', 'judgment', 'juice', 'jump_start', 'jungle', 'junior', 'jury',
-    'justice', 'justify', 'keen', 'keep', 'kettle', 'keyboard', 'kick_off', 'kid', 'kill', 'kilogram',
-    'kilometer', 'kind', 'kingdom', 'kiss', 'kitchen', 'kite', 'knee', 'kneel', 'knitted', 'knock',
-    'knot', 'know', 'knowledge', 'label', 'laboratory', 'labor', 'lace', 'lack', 'ladder', 'lady',
-    'lake', 'lamb', 'lamp', 'land', 'landing', 'landlord', 'landscape', 'lane', 'laptop', 'last',
-    'late', 'later', 'latest', 'latter', 'laugh', 'launch', 'laundry', 'layer', 'lazy', 'lead', 'leaf',
-    'league', 'leak', 'lean', 'leap', 'learn', 'learned', 'learning', 'lease', 'least',
-    'leather_bound', 'leave', 'lecture', 'left_side', 'leg', 'legal', 'legendary', 'legislation',
-    'leisure', 'lemon', 'lend', 'length', 'lens', 'less', 'lesson', 'let_go', 'letter', 'level',
-    'liberal', 'library', 'license', 'lid', 'lie_down', 'life', 'lifestyle', 'lifetime', 'lift',
-    'light', 'lighting', 'lightly', 'lightning', 'likewise', 'limb', 'limitation', 'limited', 'line',
-    'linear', 'link', 'lion', 'lip', 'liquid', 'list', 'literally_speaking', 'literary', 'literature',
-    'litre', 'litter', 'little_bit', 'live_wire', 'lively', 'liver', 'living', 'load', 'loan', 'local',
-    'locate', 'location', 'lock', 'log', 'logical', 'lonely', 'long_term', 'look_alike', 'loose',
-    'lord', 'lorry', 'lose_way', 'loss', 'lost', 'lot', 'loud', 'love', 'lovely', 'lover', 'low_level',
-    'loyal', 'luck', 'lucky', 'luggage', 'lump', 'lunch', 'lung', 'luxury', 'machine_code', 'mad',
-    'magazine', 'magic', 'magical', 'magnet', 'magnificent', 'magnitude', 'mail', 'main', 'mainly',
-    'maintain', 'maintenance', 'major_issue', 'majority', 'make_sure', 'male', 'mall', 'man_made',
-    'manage', 'management', 'manager', 'manner', 'manual', 'manufacture', 'many_times', 'map_out',
-    'march', 'margin', 'mark', 'market_price', 'marriage', 'married', 'marry', 'mars', 'mass',
-    'massive', 'master_key', 'match_up', 'mate', 'material', 'mathematical', 'maths', 'matrix',
-    'maximum', 'may_be', 'maybe', 'me_too', 'meal', 'meaning', 'meaningful', 'meantime', 'meanwhile',
-    'measure', 'measurement', 'meat', 'mechanic', 'mechanical', 'mechanism', 'medal', 'media',
-    'medical', 'medicine', 'medium', 'meet', 'meeting', 'melody', 'melt', 'member', 'membership',
-    'membrane', 'memorial', 'memory_bank', 'mental', 'mention', 'menu', 'merchandise', 'merchant',
-    'merely', 'merge', 'merit', 'message_sent', 'metal', 'method', 'metre', 'micro', 'microchip',
-    'microscope', 'middle', 'might_as_well', 'mighty', 'mild', 'mile', 'military', 'milk', 'mill',
-    'million', 'mindset', 'mine', 'mineral', 'minimum', 'minister', 'ministry', 'minority', 'minus',
-    'minute', 'miracle', 'mirror', 'misery', 'miss', 'missing', 'mission_control', 'mist', 'mixed',
-    'mixture', 'mobile', 'mode', 'model', 'moderate', 'modern', 'modest', 'modification', 'modify',
-    'moist', 'molecule', 'momentary', 'monarch', 'monday', 'money_laundering', 'monitor_screen',
-    'monkey', 'month', 'monthly', 'monument', 'mood', 'moon', 'moral', 'moreover', 'mostly', 'mother',
-    'motion', 'motivation', 'motive', 'motor', 'mount', 'mountain', 'mouse', 'mouth', 'move_on',
-    'movement', 'whereas', 'nevertheless', 'henceforth', 'provided', 'unless', 'although', 'otherwise',
-    'wherever', 'whichever', 'notwithstanding', 'consequently', 'therefore', 'specifically',
-    'alternatively', 'simultaneously', 'subsequently', 'previously', 'mud', 'multiply', 'murder',
-    'muscle', 'museum', 'mushroom', 'music', 'musical', 'musician', 'must', 'mustard', 'mutter',
-    'mutton', 'mutual', 'mystery', 'mysterious', 'nail_file', 'naked', 'namely', 'narrative', 'narrow',
-    'nasty', 'nation', 'national', 'native', 'natural', 'naturally', 'nature', 'naval', 'near',
-    'nearly', 'neat', 'necessarily', 'necessary', 'neck', 'necklace', 'need', 'needle', 'negative',
-    'neglect', 'negotiate', 'negotiation', 'neighborhood', 'neither', 'nephew', 'nerve', 'nervous',
-    'nest', 'net_weight', 'network', 'newly', 'news', 'newspaper', 'next', 'nice', 'nickel', 'niece',
-    'nightmare', 'nine', 'nineteen', 'ninety', 'noble', 'nobody', 'noisy', 'nominal', 'none',
-    'nonsense', 'noon', 'nor', 'normal', 'normally', 'north', 'northern', 'nose', 'not_at_all', 'note', 'notebook',
-    'nothing', 'notice', 'noticeable', 'notion', 'novel', 'november', 'nowadays', 'nuclear',
-    'nuisance', 'numerous', 'nurse', 'nut', 'nylon', 'oak', 'oar', 'obedience', 'obedient', 'obey',
-    'object', 'objection', 'obligation', 'oblige', 'observation', 'observe', 'observer', 'obstacle',
-    'obtain', 'obvious', 'occasion', 'occasional', 'occupation', 'occupy', 'occur', 'occurrence',
-    'ocean', 'october', 'odd', 'offence', 'offend', 'offensive', 'offer', 'office', 'officer',
-    'official', 'officially', 'oil_rig', 'old', 'old_fashioned', 'olive', 'omission', 'omit',
-    'on_behalf_of', 'once', 'once_more', 'one_another', 'onion', 'open', 'opening', 'openly', 'opera',
-    'operate', 'operation', 'operator', 'opponent', 'opportunity', 'oppose', 'opposite', 'opposition',
-    'opt', 'optical', 'optimism', 'optimistic', 'option', 'orange', 'orbit', 'orchard', 'orchestra',
-    'order', 'ordinary', 'organ', 'organic', 'organisation', 'organise', 'original', 'originally',
-    'ornament', 'orphan', 'otherwise_noted', 'ought', 'ounce', 'ours', 'ourselves', 'out_of',
-    'outcome', 'outdoor', 'outdoors', 'outer', 'outline', 'output', 'outstanding', 'oven',
-    'over_there', 'overcoat', 'overcome', 'overhead', 'overlook', 'overnight', 'overseas', 'overtake',
-    'overtime', 'owe', 'owl', 'own', 'owner', 'ownership', 'oxygen', 'oyster', 'pace', 'pack',
-    'package', 'pad', 'page', 'pain', 'painful', 'paint', 'painter', 'painting', 'pair', 'palace',
-    'pale', 'palm', 'pan', 'panel', 'panic', 'paper', 'parachute', 'parade', 'paragraph', 'parallel',
-    'parcel', 'pardon', 'parent', 'park', 'parliament', 'defend', 'defy', 'demise', 'despair', 'dice',
-    'diesel', 'differ', 'dilemma', 'discover', 'disorder', 'distort', 'divert', 'dizzy', 'donkey',
-    'donor', 'goose', 'gorilla', 'gospel', 'gown', 'gram', 'grammar', 'groan', 'habitat', 'hardship',
-    'hate', 'hawk', 'heel', 'helmet', 'help', 'glide', 'glimpse', 'globe', 'god', 'grit', 'handy',
-    'hesitate', 'hip', 'honest', 'hull', 'humble', 'icon', 'idiot', 'imitate', 'immediate', 'immense',
-    'impose', 'incorporate', 'induce', 'infer', 'infrastructure', 'inherent', 'inherit', 'injure',
-    'innovate', 'instruct', 'intact', 'intake', 'integrate', 'intellect', 'intervene', 'invalid',
-    'invoke', 'junction', 'kidney', 'king', 'kit', 'knight', 'lap', 'laser', 'latent', 'lawyer',
-    'left', 'let', 'lever', 'liable', 'lick', 'lie', 'liter', 'literal', 'lobby', 'logo', 'loop',
-    'low', 'mask', 'math', 'mature', 'mayor', 'mere', 'merry', 'mess', 'meter', 'migration', 'mind',
-    'mix', 'money', 'mortal', 'movie', 'much', 'multiple', 'myself', 'nail', 'node', 'nominate',
-    'noun', 'oat', 'off', 'offset', 'online', 'onto', 'organize', 'overall', 'partial', 'particle',
-    'party', 'pass', 'passage', 'passenger', 'passion', 'passive', 'paste', 'patch', 'path', 'patient',
-    'patrol', 'pattern', 'pavement', 'pay', 'payment', 'peak', 'pear', 'peasant', 'peel', 'pen',
-    'penalty', 'pencil', 'penny', 'pension', 'pepper', 'per', 'perceive', 'percent', 'perfect',
-    'perform', 'perfume', 'perhaps', 'permanent', 'permit', 'person', 'perspective', 'persuade', 'pet',
-    'petrol', 'philosophy', 'phone', 'photo', 'phrase', 'physics', 'piano', 'pick', 'picture', 'piece',
-    'pig', 'pile', 'pill', 'pilot', 'pin', 'pinch', 'pine', 'pink', 'pioneer', 'pit', 'pitch', 'pity',
-    'plain', 'plan', 'plane', 'planet', 'plant', 'plastic', 'platform', 'play', 'player', 'plead',
-    'please', 'pleasure', 'pledge', 'plenty', 'plot', 'plug', 'plus', 'poem', 'poet', 'poetry',
-    'point', 'poison', 'pole', 'police', 'polish', 'polite', 'political', 'poll', 'pollution', 'pool',
-    'poor', 'pop', 'popular', 'population', 'port', 'portion', 'pose', 'position', 'positive',
-    'possess', 'possible', 'post', 'potato', 'potential', 'pound', 'poverty', 'powder', 'power',
-    'practical', 'practice', 'praise', 'pray', 'preach', 'precede', 'precious', 'precise', 'predict',
-    'prefer', 'prefix', 'pregnant', 'premium', 'prepare', 'presence', 'preserve', 'president', 'press',
-    'pressure', 'prestige', 'presume', 'pretend', 'pretty', 'prevent', 'previous', 'price', 'pride',
-    'priest', 'primary', 'prime', 'primitive', 'prince', 'principal', 'principle', 'print', 'prior',
-    'priority', 'prison', 'private', 'prize', 'probable', 'problem', 'procedure', 'process', 'produce',
-    'product', 'profession', 'professor', 'profile', 'profit', 'progress', 'prohibit', 'prominent',
-    'promise', 'promote', 'prompt', 'pronoun', 'proof', 'proper', 'property', 'proportion', 'propose',
-    'prospect', 'protect', 'protein', 'protest', 'proud', 'prove', 'provide', 'province', 'provision',
-    'provoke', 'proxy', 'psychology', 'public', 'publish', 'pump', 'punch', 'punish', 'pupil',
-    'purchase', 'pure', 'purple', 'purse', 'pursue', 'put', 'puzzle', 'pyramid', 'quality', 'quantity',
-    'quarter', 'queen', 'quest', 'quick', 'quit', 'quite', 'quote', 'race', 'radar', 'radiation',
-    'radical', 'radio', 'radius', 'rail', 'rain', 'rally', 'range', 'rank', 'rapid', 'rare', 'rate',
-    'rather', 'ratio', 'rational', 'raw', 'reach', 'react', 'read', 'real', 'realize', 'rear',
-    'reason', 'rebel', 'recall', 'receipt', 'receive', 'recent', 'reception', 'recipe', 'recognize', 'recommend', 'record', 'recover', 'recruit',
-    'recycle', 'red', 'reduce', 'refer', 'refine', 'reflect', 'reform', 'refresh', 'refrigerator',
-    'refuse', 'regard', 'regime', 'region', 'register', 'regret', 'regular', 'regulate', 'rehab',
-    'reject', 'relate', 'relation', 'relax', 'release', 'relevant', 'reliable', 'relief', 'relieve',
-    'religion', 'rely', 'remain', 'remark', 'remedy', 'remember', 'remind', 'remove', 'render',
-    'renew', 'rent', 'replace', 'report', 'represent', 'reproduce', 'republic', 'reputation',
-    'require', 'rescue', 'research', 'resemble', 'reserve', 'reset', 'reside', 'resign', 'resist',
-    'resolution', 'resort', 'resource', 'respect', 'respond', 'rest', 'restaurant', 'restore',
-    'restrict', 'result', 'resume', 'retail', 'retain', 'retire', 'retreat', 'return', 'reveal',
-    'reverse', 'review', 'revise', 'revive', 'reward', 'rhythm', 'rib', 'rice', 'rich', 'rid', 'ridge',
-    'rifle', 'right', 'rigid', 'ring', 'riot', 'risk', 'ritual', 'river', 'roar', 'roast', 'rob',
-    'robot', 'rock', 'rocket', 'rod', 'role', 'roll', 'room', 'rope', 'rose', 'rotate', 'rough',
-    'route', 'routine', 'row', 'royal', 'rub', 'rubber', 'rude', 'rug', 'ruin', 'rule', 'rural',
-    'rush', 'sack', 'sacred', 'sad', 'safe', 'safety', 'sail', 'sake', 'salad', 'salary', 'sale',
-    'salute', 'same', 'sample', 'sand', 'sandwich', 'sane', 'satellite', 'satisfy', 'sauce', 'save',
-    'saw', 'scale', 'scan', 'scare', 'scene', 'scent', 'schedule', 'scheme', 'scholar', 'school',
-    'science', 'scissors', 'scope', 'score', 'scorn', 'scout', 'scrap', 'scratch', 'scream', 'screen',
-    'screw', 'script', 'scroll', 'scrub', 'sea', 'seal', 'search', 'season', 'seat', 'second',
-    'section', 'sector', 'security', 'seek', 'seem', 'segment', 'seize', 'select', 'self', 'sell',
-    'semester', 'semi', 'send', 'senior', 'sense', 'sensitive', 'sentence', 'separate', 'sequence',
-    'series', 'serious', 'servant', 'serve', 'set', 'settle', 'seven', 'several', 'severe', 'sew',
-    'sex', 'shaft', 'shake', 'shall', 'shallow', 'shape', 'share', 'shark', 'sharp', 'shatter',
-    'shear', 'shed', 'sheep', 'sheet', 'shelf', 'shell', 'shelter', 'shine', 'ship', 'shirt', 'shiver',
-    'shock', 'shoe', 'shoot', 'shop', 'shore', 'short', 'shot', 'should', 'shoulder', 'shove', 'show',
-    'shower', 'shrank', 'shrug', 'shut', 'shutter', 'shy', 'sick', 'side', 'sigh', 'sight', 'sign',
-    'signal', 'signature', 'signify', 'silence', 'silent', 'silk', 'silly', 'similar', 'simple',
-    'simulate', 'since', 'sing', 'single', 'sink', 'sir', 'siren', 'sister', 'site', 'situate', 'six',
-    'size', 'sketch', 'skill', 'skin', 'skip', 'skirt', 'skull', 'sky', 'slam', 'slap', 'slate',
-    'slave', 'sleep', 'sleeve', 'slender', 'slice', 'slide', 'slight', 'slim', 'slip', 'slit',
-    'slogan', 'slope', 'slot', 'slow', 'slum', 'small', 'smart', 'smash', 'smell', 'smile', 'smooth',
-    'snake', 'snap', 'snatch', 'sneer', 'sneeze', 'sniff', 'snow', 'soak', 'soap', 'soar', 'sob',
-    'social', 'society', 'sock', 'socket', 'soda', 'sofa', 'soft', 'software', 'soil', 'solar',
-    'soldier', 'sole', 'solemn', 'solitary', 'solo', 'solve', 'somehow', 'someone', 'sometime',
-    'somewhat', 'son', 'song', 'soon', 'sore', 'sorry', 'sort', 'sound', 'soup', 'sour', 'south',
-    'space', 'spade', 'span', 'spare', 'special', 'species', 'specify', 'specimen', 'spectacle',
-    'speech', 'speed', 'spell', 'spend', 'sphere', 'spice', 'spider', 'spill', 'spin', 'spine',
-    'spirit', 'spit', 'spite', 'splash', 'split', 'spoil', 'spoke', 'sport', 'spot', 'sprawl',
-    'spread', 'spring', 'squad', 'square', 'squeeze', 'stack', 'staff', 'stage', 'stain', 'stair',
-    'stale', 'stall', 'stamp', 'stance', 'standard', 'star', 'stare', 'starve', 'state', 'static',
-    'station', 'statistic', 'statue', 'stay', 'steady', 'steak', 'steal', 'steel', 'steep', 'steer',
-    'stem', 'step', 'stereo', 'stick', 'stiff', 'stimulate', 'sting', 'stir', 'stitch', 'stock',
-    'stomach', 'stone', 'storage', 'store', 'stove', 'straight', 'strain', 'strap', 'strategy',
-    'straw', 'stray', 'streak', 'stream', 'street', 'strength', 'stress', 'stretch', 'strict',
-    'stride', 'strike', 'string', 'strip', 'strive', 'stroke', 'strong', 'struggle', 'stubborn',
-    'student', 'studio', 'study', 'stuff', 'stumble', 'stump', 'stun', 'stupid', 'style', 'submit',
-    'substance', 'substitute', 'subtle', 'suburb', 'subway', 'succeed', 'suck', 'sudden', 'suffer',
-    'suggest', 'suicide', 'suit', 'suite', 'sum', 'summary', 'summer', 'summit', 'sun', 'super',
-    'superb', 'supervise', 'supper', 'supplement', 'supply', 'support', 'suppose', 'supreme',
-    'surface', 'surge', 'surgery', 'surname', 'surplus', 'surprise', 'surrender', 'surround', 'survey',
-    'survive', 'suspect', 'suspend', 'sustain', 'swallow', 'swamp', 'swan', 'swap', 'swarm', 'sway',
-    'swear', 'sweat', 'sweep', 'sweet', 'swell', 'swim', 'switch', 'sword', 'symbol', 'sympathy',
-    'symptom', 'syndrome', 'synthesis', 'table', 'tablet', 'tackle', 'tact', 'tag', 'tail', 'tailor',
-    'talent', 'talk', 'tall', 'tame', 'tank', 'tap', 'tape', 'tariff', 'taste', 'tax', 'taxi', 'tea',
-    'teach', 'team', 'tear', 'tease', 'technical', 'technique', 'technology', 'tedious', 'teen',
-    'teeth', 'telephone', 'telescope', 'television', 'tell', 'temper', 'temperature', 'temple',
-    'temporary', 'tempt', 'ten', 'tend', 'tender', 'tennis', 'tension', 'term', 'terminal',
-    'terminate', 'terrace', 'terrain', 'territory', 'terror', 'test', 'testify', 'text', 'texture',
-    'thank', 'theater', 'theme', 'themselves', 'theory', 'thereby', 'thermometer', 'thick', 'thief',
-    'thigh', 'thin', 'third', 'thirst', 'thirty', 'thorough', 'those', 'thought', 'thousand', 'thread',
-    'three', 'threshold', 'thrive', 'throat', 'throughout', 'throw', 'thrust', 'thumb', 'thus',
-    'ticket', 'tide', 'tidy', 'tie', 'tier', 'tiger', 'tight', 'tile', 'till', 'tilt', 'tiny', 'tip',
-    'tire', 'tissue', 'title', 'today', 'toe', 'toilet', 'token', 'told', 'tolerance', 'toll',
-    'tomato', 'tomorrow', 'tone', 'tongue', 'tonight', 'too', 'tooth', 'top', 'topic', 'torch',
-    'total', 'touch', 'tough', 'tour', 'toward', 'towel', 'tower', 'toxic', 'toy', 'tractor', 'trade',
-    'traffic', 'tragedy', 'trait', 'transaction', 'transfer', 'transform', 'transit', 'translate',
-    'transmission', 'transport', 'trap', 'trash', 'travel', 'tray', 'treasure', 'treat', 'treaty',
-    'tree', 'tremble', 'trend', 'trial', 'triangle', 'tribe', 'tribute', 'trick', 'trigger', 'trim',
-    'trip', 'triple', 'triumph', 'troop', 'tropical', 'trouble', 'truck', 'true', 'trunk', 'try',
-    'tube', 'tuck', 'tuesday', 'tuition', 'tune', 'turbine', 'tutor', 'twelve', 'twenty', 'twice',
-    'twin', 'twist', 'type', 'typical', 'ugly', 'ultimate', 'umbrella', 'unable', 'uncle', 'under',
-    'undergo', 'understand', 'undertake', 'unfold', 'uniform', 'union', 'unique', 'unit', 'unite',
-    'universal', 'university', 'unknown', 'unusual', 'update', 'upper', 'upset', 'urban', 'urge',
-    'urgent', 'used', 'user', 'usual', 'utility', 'utter', 'vacant', 'vacuum', 'vague', 'vain',
-    'valid', 'valley', 'valuable', 'value', 'valve', 'van', 'vanish', 'vapor', 'variable', 'variation',
-    'variety', 'various', 'vary', 'vast', 'vault', 'vegetable', 'vehicle', 'velocity', 'velvet',
-    'vendor', 'venture', 'venue', 'verb', 'verdict', 'verify', 'version', 'versus', 'vest', 'veteran',
-    'veto', 'via', 'vibrate', 'vibrant', 'vice', 'victim', 'victory', 'video', 'view', 'viewer',
-    'vigil', 'village', 'vine', 'violate', 'violence', 'violet', 'virtual', 'virtue', 'virus',
-    'vision', 'visit', 'visitor', 'visual', 'vital', 'vitamin', 'vivid', 'vocal', 'voice', 'volcano',
-    'volume', 'volunteer', 'vow', 'voyage', 'vulnerable', 'wade', 'wage', 'wake', 'wall', 'wallet',
-    'wander', 'want', 'ward', 'warm', 'warn', 'warp', 'warrant', 'wash', 'waste', 'wave', 'wax',
-    'weak', 'wealth', 'weapon', 'wear', 'weather', 'weave', 'web', 'wedding', 'week', 'weigh',
-    'weight', 'weird', 'welfare', 'well', 'west', 'wet', 'whale', 'wheat', 'wheel', 'whether', 'while',
-    'whip', 'white', 'whole', 'whom', 'whose', 'wide', 'widow', 'width', 'wife', 'wild', 'willing',
-    'win', 'wine', 'wing', 'winner', 'winter', 'wisdom', 'wise', 'wish', 'wit', 'witness', 'wolf',
-    'woman', 'wonder', 'wood', 'wool', 'word', 'worker', 'world', 'worm', 'worry', 'worse', 'would',
-    'wound', 'wrap', 'wreck', 'wrench', 'wrestle', 'wrist', 'writer', 'wrong', 'yard', 'yell',
-    'yellow', 'yes', 'yesterday', 'yield', 'yoga', 'yoke', 'you', 'young', 'your', 'yourself', 'youth',
-    'zone', 'zoo', 'zoom', 'acidic', 'acoustic', 'active', 'adaptable', 'adept', 'adequate',
-    'adhesive', 'adjacent', 'adjust', 'admire', 'adorn', 'adrift', 'adroit', 'adult', 'advent',
-    'adverse', 'advise', 'aerial', 'affable', 'affect', 'affirm', 'affix', 'afford', 'afloat',
-    'afraid', 'aftermath', 'agape', 'ageless', 'agency', 'agenda', 'aghast', 'agile', 'agitate',
-    'agony', 'aground', 'ahead', 'aid', 'ail', 'aim', 'airborne', 'ajar', 'akin', 'albeit', 'album',
-    'alias', 'alibi', 'alien', 'align', 'alike', 'alkali', 'allay', 'allege', 'alloy', 'allure',
-    'ally', 'almanac', 'almost', 'aloft', 'alone', 'alongside', 'aloof', 'alpha', 'alpine', 'already',
-    'altar', 'alter', 'altitude', 'alto', 'altruism', 'alum', 'alumni', 'amaze', 'amber', 'ambit',
-    'ambush', 'amend', 'amenity', 'amiable', 'amid', 'amiss', 'amity', 'ammo', 'amorphous', 'amount',
-    'amperage', 'ample', 'amplify', 'ampule', 'amuse', 'anagram', 'analog', 'analyst', 'anarchy',
-    'anatomy', 'anchovy', 'android', 'anecdote', 'anemia', 'anew', 'angelic', 'anger', 'angle',
-    'angora', 'anguish', 'animal', 'animate', 'anion', 'anise', 'ankle', 'annals', 'annex', 'annoy',
-    'annual', 'annul', 'anode', 'anoint', 'anon', 'answer', 'antacid', 'ante', 'anthem', 'antic',
-    'antler', 'antonym', 'anvil', 'anxiety', 'anyhow', 'aorta', 'apace', 'apathy', 'apex', 'aphid', 'apiary', 'apiece', 'aplomb', 'apogee', 'appall', 'apparel', 'appeal', 'appear',
-    'append', 'applaud', 'apply', 'appoint', 'appraisal', 'approve', 'apron', 'aptly', 'aqua',
-    'aquatic', 'arable', 'arbor', 'arcade', 'archaic', 'archer', 'archive', 'arctic', 'ardent',
-    'ardor', 'arena', 'argot', 'argue', 'arid', 'arise', 'armada', 'armband', 'armor', 'armpit',
-    'army', 'aroma', 'arouse', 'array', 'arrest', 'arrival', 'arrive', 'arrow', 'arson', 'artery',
-    'artful', 'artifact', 'artisan', 'ascent', 'ascribe', 'aseptic', 'ashamed', 'ashen', 'ashore',
-    'aside', 'askew', 'aspen', 'asphalt', 'aspire', 'assail', 'assay', 'assent', 'assert', 'assess',
-    'assign', 'assume', 'assure', 'aster', 'asthma', 'astound', 'astral', 'astray', 'astute', 'asylum',
-    'atoll', 'atom', 'atone', 'atrium', 'attach', 'attain', 'attend', 'attic', 'attire', 'attract',
-    'attribute', 'auburn', 'auction', 'audio', 'auger', 'augment', 'augur', 'august', 'aunt', 'aura',
-    'aural', 'aurora', 'author', 'auto', 'autumn', 'avail', 'avatar', 'avenge', 'avenue', 'averse',
-    'avert', 'aviary', 'avid', 'avow', 'await', 'award', 'awash', 'away', 'awe', 'awful', 'awoke',
-    'awry', 'axial', 'axiom', 'axis', 'azure', 'babble', 'babe', 'baby', 'bacon', 'baffle', 'bagel',
-    'baggage', 'baggy', 'bail', 'bait', 'bake', 'balcony', 'bald', 'ballad', 'ballast', 'ballot',
-    'balm', 'balsam', 'bamboo', 'banal', 'bandage', 'bandit', 'banish', 'banjo', 'banner', 'banter',
-    'barb', 'barely', 'barge', 'baritone', 'bark', 'barley', 'barn', 'baron', 'barrel', 'barren',
-    'barter', 'basalt', 'bashful', 'basin', 'basis', 'bass', 'baste', 'batch', 'baton', 'bayou',
-    'beak', 'beat', 'beauty', 'beaver', 'beckon', 'bedding', 'bedlam', 'bedrock', 'beech', 'beef',
-    'beep', 'beet', 'befit', 'beget', 'beggar', 'begrudge', 'beguile', 'behalf', 'behave', 'behest',
-    'behold', 'beige', 'belate', 'belch', 'belfry', 'belittle', 'bellboy', 'bellow', 'belong',
-    'beloved', 'bemoan', 'benign', 'bent', 'bequeath', 'berate', 'bereft', 'berry', 'berth', 'beset',
-    'beside', 'bestow', 'bet', 'betray', 'bevel', 'beverage', 'beware', 'bewilder', 'bicep', 'bicker',
-    'bid', 'bide', 'bile', 'bilge', 'bind', 'bingo', 'biology', 'biome', 'biped', 'birch', 'bishop',
-    'bison', 'bland', 'blatant', 'blaze', 'bleak', 'bleat', 'bleed', 'blimp', 'blink', 'bliss',
-    'blitz', 'bloat', 'blond', 'blot', 'blouse', 'blow', 'blunt', 'blur', 'blush', 'boast', 'bode',
-    'bogus', 'bolster', 'bonnet', 'bonus', 'bony', 'boom', 'boost', 'bore', 'botany', 'bother',
-    'bough', 'bout', 'brace', 'bracket', 'brad', 'brag', 'braid', 'brake', 'brand', 'brass', 'brawl',
-    'brawn', 'breast', 'breech', 'breed', 'bride', 'brief', 'brill', 'brim', 'brink', 'brisk',
-    'bristle', 'broad', 'brochure', 'broil', 'broke', 'broker', 'bronze', 'brooch', 'brood', 'brook',
-    'broom', 'broth', 'brow', 'browse', 'bruise', 'brunch', 'brutal', 'brute', 'buck', 'buckle', 'bud',
-    'buddy', 'buff', 'buggy', 'bugle', 'built', 'bulb', 'bulge', 'bulk', 'bull', 'bully', 'bump',
-    'bundle', 'bunk', 'bunny', 'bunt', 'buoy', 'bureau', 'burrow', 'bury', 'bush', 'bust', 'butcher',
-    'butler', 'butter', 'buzz', 'bye', 'cab', 'cache', 'cadet', 'cafe', 'calcite', 'caliber',
-    'calorie', 'camel', 'campaign', 'campus', 'canary', 'cancel', 'cancer', 'candid', 'cane', 'canine',
-    'canker', 'cannon', 'canoe', 'canon', 'canopy', 'capable', 'cape', 'capitol', 'capsule', 'caption',
-    'captivate', 'captive', 'caravan', 'card', 'cardiac', 'cardinal', 'career', 'caribou', 'carnage',
-    'carnival', 'carol', 'carpenter', 'carriage', 'carrier', 'carrot', 'cartel', 'carton', 'cartoon',
-    'cascade', 'cashew', 'cashier', 'casino', 'casket', 'cassette', 'casual', 'catalog', 'catalyst',
-    'catapult', 'cataract', 'catastrophe', 'cater', 'cathedral', 'cathode', 'catholic', 'caution',
-    'cavalry', 'cavern', 'caviar', 'cavity', 'cease', 'cedar', 'cede', 'celery', 'celestial', 'cellar',
-    'cello', 'cellular', 'cement', 'cemetery', 'censor', 'census', 'cent', 'central', 'ceramic',
-    'cereal', 'ceremony', 'certain', 'certificate', 'certify', 'cessation', 'chafe', 'champagne',
-    'chancellor', 'chandelier', 'chant', 'chapel', 'charcoal', 'chariot', 'charm', 'charter', 'chasm',
-    'chassis', 'chatter', 'cheat', 'cheer', 'cherish', 'cherry', 'chess', 'chevron', 'chew', 'chili',
-    'chime', 'chin', 'china', 'chip', 'chirp', 'chisel', 'choir', 'choke', 'cholera', 'chop', 'chord',
-    'chore', 'chorus', 'chrome', 'chronic', 'chronicle', 'chubby', 'chuck', 'chuckle', 'chum', 'chunk',
-    'cider', 'cigar', 'cinema', 'cinnamon', 'cipher', 'circulate', 'circus', 'cite', 'citrus', 'civic',
-    'clam', 'clamp', 'clan', 'clarity', 'clash', 'clasp', 'clause', 'cleat', 'cleave', 'clench',
-    'clergy', 'clinch', 'cling', 'clinic', 'clip', 'cloak', 'closet', 'clover', 'clown', 'club',
-    'cluck', 'clump', 'clumsy', 'clutch', 'cobalt', 'successful', 'cobra', 'cobweb', 'cockpit',
-    'cocoa', 'codfish', 'coerce', 'coffer', 'cogent', 'cognac', 'cognate', 'coil', 'coke', 'colic', 'collar', 'collide', 'collier', 'collins', 'colonel',
-    'colony', 'colt', 'coma', 'comb', 'comedy', 'comet', 'commence', 'commend', 'comment', 'commerce',
-    'commit', 'committee', 'commute', 'compact', 'compel', 'compile', 'complain', 'comply', 'compress',
-    'comprise', 'compute', 'comrade', 'concave', 'conceal', 'concede', 'conceit', 'concern', 'concise',
-    'conclave', 'conclude', 'concord', 'concur', 'condemn', 'condense', 'condone', 'conducive',
-    'conduit', 'cone', 'confect', 'confer', 'confess', 'confide', 'confine', 'conform', 'confound',
-    'confront', 'congeal', 'congest', 'congress', 'conic', 'conifer', 'conjoin', 'conjure', 'connote',
-    'conquer', 'consent', 'conserve', 'consign', 'console', 'conspire', 'constitute', 'constrain',
-    'consul', 'consult', 'contempt', 'contend', 'continent', 'contour', 'contradict', 'contrast',
-    'contribute', 'convent', 'converge', 'converse', 'convex', 'convey', 'convict', 'convoy', 'coop',
-    'coordinate', 'cope', 'coral', 'cord', 'cork', 'corn', 'cornet', 'coronary', 'corpse', 'corridor',
-    'corrode', 'corrupt', 'cosmic', 'costume', 'cottage', 'council', 'counsel', 'county', 'coupon',
-    'cove', 'covet', 'coward', 'crab', 'cradle', 'crag', 'cramp', 'crane', 'crank', 'crate', 'crater',
-    'crave', 'crayon', 'creak', 'creature', 'creed', 'creep', 'cremate', 'creole', 'crescent', 'crest',
-    'crib', 'cried', 'crimp', 'crimson', 'cringe', 'crinkle', 'crisp', 'croak', 'crochet', 'crock',
-    'crocus', 'crony', 'crook', 'crouch', 'croup', 'crow', 'crown', 'crude', 'crumb', 'crumble',
-    'crumpet', 'crunch', 'crusade', 'crust', 'crutch', 'crux', '__main__']
-
-     def initialize_lexicon(word_list_str):
     random.seed(13579) # The Genetic Seed
-    word_list = word_list_str.lower().split()
-    unique = sorted(list(set([w.strip() for w in word_list if w.strip()])))
+    unique = sorted(list(set(word_list)))
     shuffled = list(unique)
     random.shuffle(shuffled)
+    
+    # Range 10000-99999 ensures 5-digit IDs to match your signature format
     id_pool = random.sample(range(10000, 99999), len(shuffled))
+    
     lex = {str(id_val): word for id_val, word in zip(id_pool, shuffled)}
     rev_lex = {word: str(id_val) for id_val, word in zip(id_pool, shuffled)}
     return lex, rev_lex
 
-LEXICON, REVERSE_LEXICON = initialize_lexicon(RAW_WORDS)
+LEXICON, REVERSE_LEXICON = load_lexicon_from_db()
 
 # --- SECTION 3: CORE TRANSFORMATION ---
 def encrypt_to_psi(plaintext, pillar_key="1"):
@@ -561,9 +81,7 @@ def decrypt_from_psi(psi_string, pillar_key="1"):
             except:
                 decoded.append("ERR")
         else:
-            # Clean off the brackets if it was a literal [word]
-            clean_word = token.replace("[", "").replace("]", "")
-            decoded.append(clean_word.upper())
+            decoded.append(token.upper())
     return " ".join(decoded)
 
 # --- SECTION 4: INTERFACE ---
@@ -573,34 +91,46 @@ class CitizenXApp(App):
         Window.clearcolor = (0.05, 0.05, 0.05, 1)
         layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        layout.add_widget(Label(
+        # PSI-SIGNATURE FEED
+        self.status_label = Label(
             text="[ CITIZEN_X : SIG-13579 ]", 
             color=(0, 1, 0, 1), 
-            size_hint_y=None, 
-            height=40,
-            font_size='20sp'
-        ))
+            size_hint_y=None, height=50, font_size='22sp'
+        )
+        layout.add_widget(self.status_label)
         
+        # KEYBOARD_FLOW FIX: input_type='text' and keyboard_suggestions=True
+        # multiline=True and use_bubble enable full Android keyboard features
         self.input_box = TextInput(
             background_color=(0.1, 0.1, 0.1, 1), 
             foreground_color=(1, 1, 1, 1), 
             font_size='18sp',
-            hint_text="Enter text or PSI-Language...",
-            input_type='text', # FORCES KEYBOARD SWIPE/FLOW
-            keyboard_suggestions=True
+            hint_text="[ FEED_COMMANDS_HERE ]",
+            input_type='text',
+            keyboard_suggestions=True,
+            use_bubble=True,
+            multiline=True
         )
         layout.add_widget(self.input_box)
         
-        btn_box = BoxLayout(size_hint_y=None, height=60, spacing=10)
-        btn_enc = Button(text="ENCRYPT", background_color=(0.2, 0.4, 0.2, 1))
+        btn_box = BoxLayout(size_hint_y=None, height=70, spacing=10)
+        btn_enc = Button(text="ENCRYPT", background_color=(0.1, 0.5, 0.1, 1), font_size='18sp')
         btn_enc.bind(on_press=lambda x: self.process(True))
-        btn_dec = Button(text="DECRYPT", background_color=(0.4, 0.2, 0.2, 1))
+        btn_dec = Button(text="DECRYPT", background_color=(0.5, 0.1, 0.1, 1), font_size='18sp')
         btn_dec.bind(on_press=lambda x: self.process(False))
         
         btn_box.add_widget(btn_enc)
         btn_box.add_widget(btn_dec)
         layout.add_widget(btn_box)
+
+        # Automatic Numerical Feed: Pulses the status bar every 2 seconds
+        Clock.schedule_interval(self.auto_pulse, 2.0)
         return layout
+
+    def auto_pulse(self, dt):
+        words = ["sovereign", "engine", "citizen", "negentropy", "frequency"]
+        pulse_word = random.choice(words)
+        self.status_label.text = f"[ {encrypt_to_psi(pulse_word)} ]"
 
     def process(self, encrypt):
         text = self.input_box.text
@@ -608,5 +138,5 @@ class CitizenXApp(App):
             self.input_box.text = encrypt_to_psi(text) if encrypt else decrypt_from_psi(text)
 
 if __name__ == "__main__":
-    CitizenXApp().run()  
-
+    CitizenXApp().run()
+            
