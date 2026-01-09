@@ -2,13 +2,19 @@ name: Build Citizen X
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
-    # Switching to 22.04 for maximum compatibility with Buildozer
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Maximize Build Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -17,21 +23,20 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -qq \
-            git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
             libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
             libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
-          pip install --user --upgrade buildozer cython virtualenv
+          pip install --user --upgrade buildozer cython virtualenv python-for-android
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Pre-accept licenses
+          # Ensure android config exists to prevent NDK prompt hang
           mkdir -p ~/.android && touch ~/.android/repositories.cfg
-          # Clean and Build
-          buildozer android clean
+          # STRIKE: Skip 'clean' to avoid the 27-second brick. 
+          # We use 'yes |' to auto-accept SDK licenses.
           yes | buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
@@ -40,6 +45,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CITIZEN_X_Debug_APK
+          name: CITIZEN_X_Binary
           path: bin/*.apk
           
