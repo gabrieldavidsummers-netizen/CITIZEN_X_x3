@@ -1,57 +1,28 @@
-name: Build Citizen X
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Maximize Build Space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # BYPASS: Using the hardened action instead of 'apt install' to fix the cacerts error
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
-            libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
-            libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
-
       - name: Install Build Tools
         run: |
           pip install --user --upgrade buildozer cython virtualenv python-for-android
+          # Crucial: Force the path to update for the next steps
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          # Pre-accepting SDK licenses manually to prevent the 7-minute hang
-          mkdir -p "$ANDROID_HOME/licenses" || true
-          echo "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          # 1. Anchor the Java Home from the previous step
+          export JAVA_HOME=$JAVA_HOME_17_X64
+          export PATH=$JAVA_HOME/bin:$PATH
           
-          yes | buildozer -v android debug
+          # 2. Fix the Android SDK location
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
+          
+          # 3. Pre-sign Licenses (The hash strike)
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          
+          # 4. Execute with absolute path and verbose logging
+          # We use '--profile' to force a fresh look at the spec
+          ~/.local/bin/buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
-          # Pointing directly to the runner's pre-installed SDK
-          ANDROID_HOME: /usr/local/lib/android/sdk
           APP_ANDROID_ACCEPT_SDK_LICENSE: 1
           
