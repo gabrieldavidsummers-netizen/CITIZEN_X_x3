@@ -25,7 +25,6 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          # Focused install to prevent apt-hang
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
             libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
@@ -33,26 +32,15 @@ jobs:
 
       - name: Install Build Tools
         run: |
-          pip install --user --upgrade "buildozer>=1.5.0" "cython<3.0.0" virtualenv
+          pip install --user --upgrade buildozer cython virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
           export ANDROID_HOME=/usr/local/lib/android/sdk
-          # We check if NDK exists, if not we let Buildozer handle it safely
-          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
-          
-          # Pre-sign licenses
           mkdir -p "$ANDROID_HOME/licenses" || true
           echo -e "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          
-          # STRIKE: If pre-installed NDK isn't found, we drop the env var to allow download
-          if [ ! -d "$ANDROID_NDK_HOME" ]; then
-            echo "Pre-installed NDK not found. Allowing Buildozer to manage toolchain."
-            yes | buildozer -v android debug
-          else
-            yes | APP_ANDROID_SDK=$ANDROID_HOME APP_ANDROID_NDK=$ANDROID_NDK_HOME buildozer -v android debug
-          fi
+          yes | buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
