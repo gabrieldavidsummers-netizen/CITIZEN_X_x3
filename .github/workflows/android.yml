@@ -8,30 +8,61 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Maximize Build Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Set up Java
+      - name: Set up Java (Adoptium/Temurin Strike)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Build Tools
+      - name: Install System Dependencies
         run: |
-          pip install --user --upgrade buildozer cython virtualenv
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
+            libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
+            libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
+
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --user --upgrade "buildozer>=1.5.0" "cython<3.0.0" virtualenv
+          # Inject the path into the global GitHub environment for the next step
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
+          # 1. Align the environment variables
           export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
+          export PATH=$PATH:$HOME/.local/bin
+
+          # 2. Pre-sign SDK Licenses (The Bureaucracy Bypass)
           mkdir -p "$ANDROID_HOME/licenses" || true
-          echo -e "\n24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          ~/.local/bin/buildozer -v android debug
+          echo -e "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo -e "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+
+          # 3. Force Buildozer to use pre-installed NDK and SDK
+          # This bypasses the 6-minute NDK download failure
+          yes | APP_ANDROID_SDK=$ANDROID_HOME APP_ANDROID_NDK=$ANDROID_NDK_HOME buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CITIZEN_X_Binary
+          path: bin/*.apk
           
