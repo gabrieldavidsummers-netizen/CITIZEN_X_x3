@@ -19,7 +19,9 @@ VARIANT_MAP = {
 REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars}
 
 # --- SECTION 2: THE LEXICON PAYLOAD ---
-# PASTE YOUR 4000+ WORDS HERE
+# INJECTION POINT: Replace these placeholder words with your full 4000+ list
+
+
 RAW_WORDS = [
     'absence', 'anchor', 'architect', 'codebase', 'compressed_seed', 'continuity', 'control', 'domain',
     'ethos', 'exploitation', 'feat', 'final', 'firewall', 'folly', 'glutton', 'gumption', 'guardian',
@@ -519,9 +521,10 @@ RAW_WORDS = [
     'crocus', 'crony', 'crook', 'crouch', 'croup', 'crow', 'crown', 'crude', 'crumb', 'crumble',
     'crumpet', 'crunch', 'crusade', 'crust', 'crutch', 'crux', '__main__']
 
-def initialize_lexicon(word_list):
+     def initialize_lexicon(word_list_str):
     random.seed(13579) # The Genetic Seed
-    unique = sorted(list(set([w.lower().strip() for w in word_list])))
+    word_list = word_list_str.lower().split()
+    unique = sorted(list(set([w.strip() for w in word_list if w.strip()])))
     shuffled = list(unique)
     random.shuffle(shuffled)
     id_pool = random.sample(range(10000, 99999), len(shuffled))
@@ -558,7 +561,9 @@ def decrypt_from_psi(psi_string, pillar_key="1"):
             except:
                 decoded.append("ERR")
         else:
-            decoded.append(token)
+            # Clean off the brackets if it was a literal [word]
+            clean_word = token.replace("[", "").replace("]", "")
+            decoded.append(clean_word.upper())
     return " ".join(decoded)
 
 # --- SECTION 4: INTERFACE ---
@@ -568,9 +573,22 @@ class CitizenXApp(App):
         Window.clearcolor = (0.05, 0.05, 0.05, 1)
         layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        layout.add_widget(Label(text="[ CITIZEN_X : SIG-13579 ]", color=(0, 1, 0, 1), size_hint_y=None, height=40))
+        layout.add_widget(Label(
+            text="[ CITIZEN_X : SIG-13579 ]", 
+            color=(0, 1, 0, 1), 
+            size_hint_y=None, 
+            height=40,
+            font_size='20sp'
+        ))
         
-        self.input_box = TextInput(background_color=(0.1, 0.1, 0.1, 1), foreground_color=(1, 1, 1, 1), font_size='18sp')
+        self.input_box = TextInput(
+            background_color=(0.1, 0.1, 0.1, 1), 
+            foreground_color=(1, 1, 1, 1), 
+            font_size='18sp',
+            hint_text="Enter text or PSI-Language...",
+            input_type='text', # FORCES KEYBOARD SWIPE/FLOW
+            keyboard_suggestions=True
+        )
         layout.add_widget(self.input_box)
         
         btn_box = BoxLayout(size_hint_y=None, height=60, spacing=10)
@@ -590,5 +608,5 @@ class CitizenXApp(App):
             self.input_box.text = encrypt_to_psi(text) if encrypt else decrypt_from_psi(text)
 
 if __name__ == "__main__":
-    CitizenXApp().run()
+    CitizenXApp().run()  
 
