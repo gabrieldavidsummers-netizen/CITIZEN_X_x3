@@ -1,22 +1,49 @@
 name: Android Build 13579
-on: [push, workflow_dispatch]
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python_version: '3.11'
-      - name: Install Dependencies
+          python-version: '3.11'
+
+      - name: Cache Buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git python3-dev openjdk-17-jdk unzip zip libffi-dev libssl-dev libsqlite3-dev
+          sudo apt-get install -y build-essential git python3-dev openjdk-17-jdk unzip zip libffi-dev libssl-dev autoconf automake libtool ccache
+          pip install --upgrade pip
           pip install buildozer cython==0.29.33
-      - name: Build APK
+
+      - name: Build with Buildozer (Persistence Mode)
         run: |
-          yes | buildozer android debug
-      - uses: actions/upload-artifact@v4
+          export BUILDOZER_ALLOW_ORG_NAME_START=1
+          yes | buildozer -v android debug
+        env:
+          ACCEPT_SDK_LICENSE: "y"
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: CITIZEN_X_APK
           path: bin/*.apk
