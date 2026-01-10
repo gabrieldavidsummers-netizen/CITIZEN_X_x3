@@ -12,43 +12,32 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 2. SCORCHED EARTH (Clear Disk Space)
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
-          sudo apt-get clean
-
-      - name: 3. SYSTEM ANCHORS (Install Headers)
+      - name: 2. SYSTEM ANCHORS (Minimalist Forge)
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
           libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
-          libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev libdb5.3-dev \
+          libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
           libexpat1-dev liblzma-dev uuid-dev openjdk-17-jdk
 
-      - name: 4. SDK MANIFEST DESTINY
-        run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-          curl -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q cmdline.zip
-          mv cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
-          
-          # Accept Licenses
-          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
-
-      - name: 5. THE ANVIL STRIKE (Execute Build)
+      - name: 3. THE ANVIL STRIKE (Direct Execution)
         run: |
           pip install --upgrade buildozer cython==0.29.33 virtualenv
           export PATH=$PATH:$HOME/.local/bin
           
-          # BUILD PATCHES
-          export CFLAGS="-Wno-error=unused-command-line-argument"
+          # RID-X: FORCE SQLITE PATHS FOR HOSTPYTHON
+          export CFLAGS="-I/usr/include/sqlite3 -Wno-error=unused-command-line-argument"
+          export LDFLAGS="-L/usr/lib/x86_64-linux-gnu"
           
-          # Execute Build
-          buildozer android debug
+          # Accept licenses silently
+          yes | buildozer android signatures || true
+          
+          # Strike
+          buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
-      - name: 6. EXTRACT BODY (Upload APK)
+      - name: 4. EXTRACT BODY
         uses: actions/upload-artifact@v4
         with:
           name: CITIZEN_X_Binary
