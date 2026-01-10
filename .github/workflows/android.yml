@@ -7,6 +7,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free Disk Space (Scorched Earth)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -22,17 +30,10 @@ jobs:
 
       - name: Build Command-Line Tools (Manual)
         run: |
-          # 1. Create the modern structure
           mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-          
-          # 2. Grab the specific tools that work
           curl -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q cmdline.zip
-          
-          # 3. Move them into the 'latest' slot
           mv cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
-          
-          # 4. CRITICAL: Link the legacy path Buildozer expects
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
@@ -40,7 +41,6 @@ jobs:
         run: |
           pip install --user --upgrade buildozer cython==0.29.33 virtualenv
           export PATH=$PATH:$HOME/.local/bin
-          # Force accept licenses using the tools we just installed
           yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
           buildozer android debug
         env:
