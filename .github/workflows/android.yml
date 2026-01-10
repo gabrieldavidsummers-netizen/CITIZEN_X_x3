@@ -7,43 +7,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Anchor Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: System Anchors & Lock Breaker
+      - name: System Anchors
         run: |
-          sudo fuser -kuv /var/lib/dpkg/lock-frontends || true
-          sudo rm -f /var/lib/dpkg/lock-frontends
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential git python3-dev zip unzip autoconf libtool pkg-config \
             libffi-dev libssl-dev libsqlite3-dev openjdk-17-jdk cmake
 
-      - name: Anchor Android SDK (Manual Extraction)
-        run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          # Pre-accept licenses to stop the manifest dump
-          echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb743130d6db8634d873" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          # Touch repositories.cfg to stop sdkmanager warnings
-          mkdir -p ~/.android && touch ~/.android/repositories.cfg
-
-      - name: Install Hammer & Cython
+      - name: Install Hammer
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
       - name: Strike The Anvil
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          # Force buildozer to stay quiet and use existing SDK
-          buildozer -v android debug | grep -v "Fetch remote repository"
+          # Force buildozer to actually START the process
+          # We use 'android debug' and ensure the .spec is fresh
+          buildozer android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
-      - name: Extract CITIZEN_X
+      - name: Find and Extract Body
+        run: |
+          # RID-X: Find the APK regardless of path drift
+          mkdir -p output_apk
+          find . -name "*.apk" -exec cp {} output_apk/ \;
+          
+      - name: Upload CITIZEN_X
         uses: actions/upload-artifact@v4
         with:
           name: CITIZEN_X_Binary
-          path: bin/*.apk
+          path: output_apk/*.apk
