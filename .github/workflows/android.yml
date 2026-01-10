@@ -1,58 +1,41 @@
 name: Build Citizen X
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install System Dependencies
+      - name: Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
-            libssl-dev libsqlite3-dev tk-dev libbz2-dev libreadline-dev \
-            libgdbm-dev libdb5.3-dev libexpat1-dev liblzma-dev uuid-dev
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
+          libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+          libsqlite3-dev libbz2-dev libreadline-dev libgdbm-dev liblzma-dev uuid-dev
 
-      - name: Install Build Tools
+      - name: Buildozer Install
         run: |
           pip install --user --upgrade buildozer cython virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build with Buildozer
+      - name: Build
         run: |
-          # ANCHORING TO PRE-INSTALLED SDK
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
-          export PATH=$PATH:$HOME/.local/bin
-          
-          # Pre-accepting licenses in the runner's SDK path
-          mkdir -p "$ANDROID_HOME/licenses" || true
-          echo -e "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          
-          # FORCING BUILDOZER TO USE SYSTEM TOOLS
-          # This prevents the 8-minute unzip/fetch hang
-          yes | APP_ANDROID_SDK=$ANDROID_HOME APP_ANDROID_NDK=$ANDROID_NDK_HOME buildozer -v android debug
+          # Kill any lingering SDK environment vars that cause bricking
+          unset ANDROID_SDK_ROOT
+          unset ANDROID_HOME
+          buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
-      - name: Upload Artifact
+      - name: Artifact
         uses: actions/upload-artifact@v4
         with:
           name: CITIZEN_X_Binary
