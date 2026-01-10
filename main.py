@@ -19,7 +19,6 @@ PILLARS = {
     "Pillar 5": 3092
 }
 
-# PSI-LANGUAGE VARIANT MAP
 VARIANT_MAP = {
     '0':['0','o','O','⁰'],'1':['1','¹'],'2':['2','²'],
     '3':['3','³'],'4':['4','⁴'],'5':['5','⁵'],
@@ -28,19 +27,26 @@ VARIANT_MAP = {
 REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars}
 
 def load_lexicon():
+    # RID-X: Ensuring the DB doesn't brick the soul on first run
     db_path = "lexicon.db"
     word_list = []
+    
     if os.path.exists(db_path):
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
-            cursor.execute("SELECT word FROM vault")
-            word_list = [row[0].lower().strip() for row in cursor.fetchall() if row[0]]
+            # Verify table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='vault'")
+            if cursor.fetchone():
+                cursor.execute("SELECT word FROM vault")
+                word_list = [row[0].lower().strip() for row in cursor.fetchall() if row[0]]
             conn.close()
-        except: pass
+        except Exception: 
+            pass
     
+    # Fallback to hardcoded Steel
     if not word_list: 
-        word_list = ["citizen", "x", "sovereign", "engine", "forge"]
+        word_list = ["citizen", "x", "sovereign", "engine", "forge", "maestro", "gtr", "sentinel"]
     
     random.seed(13579)
     unique = sorted(list(set(word_list)))
@@ -65,7 +71,6 @@ class GestureTextInput(TextInput):
         if self.collide_point(*touch.pos):
             dx = touch.x - self.touch_start_x
             if abs(dx) > 150:
-                # Swipe Right = Encrypt, Swipe Left = Decrypt
                 self.parent.parent.process(dx > 0)
                 return True
         return super().on_touch_up(touch)
@@ -81,13 +86,14 @@ class CitizenXApp(App):
             background_color=(0.1, 0.1, 0.1, 1), 
             foreground_color=(0, 1, 0, 1), 
             font_size='18sp', 
-            multiline=True
+            multiline=True,
+            hint_text="Input signal..."
         )
         
         btn_box = BoxLayout(size_hint_y=None, height=80, spacing=10)
         for t, c, m in [("ENCRYPT", (0, .4, 0, 1), True), ("DECRYPT", (.4, 0, 0, 1), False), ("COPY", (.2, .2, .5, 1), None)]:
             btn = Button(text=t, background_color=c)
-            btn.bind(on_press=lambda x, m=m: self.process(m) if m is not None else self.copy())
+            btn.bind(on_press=lambda x, m=m: self.process(m) if m is not None else self.copy_to_clip())
             btn_box.add_widget(btn)
         
         layout.add_widget(self.status)
@@ -119,12 +125,11 @@ class CitizenXApp(App):
                 else: res.append(t.upper())
         
         self.input_box.text = " ".join(res)
-        self.copy()
+        self.copy_to_clip()
 
-    def copy(self):
+    def copy_to_clip(self):
         Clipboard.copy(self.input_box.text)
         self.status.text = "[ RESULT COPIED ]"
 
 if __name__ == "__main__":
     CitizenXApp().run()
-        
