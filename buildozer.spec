@@ -17,13 +17,10 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 # ASSET ANCHORS
 icon.filename = %(source.dir)s/CITIZEN_X.png
 
-# PATH LOCKDOWN (Prevents the 30s crash)
-android.sdk_path = /usr/local/lib/android/sdk
-android.ndk_path = /usr/local/lib/android/sdk/ndk/25.2.9519653
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.skip_update = True
+android.skip_update = False
 android.accept_sdk_license = True
 
 [buildozer]
