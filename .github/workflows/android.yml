@@ -1,58 +1,20 @@
-name: CITIZEN_X_SOVEREIGN_BUILD
+name: Build Citizen X
 on: [push, workflow_dispatch]
 
 jobs:
-  forge:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Anchor Python
-        uses: actions/setup-python@v5
+      - name: Build with Buildozer
+        uses: kivy/buildozer-action@v1
         with:
-          python-version: '3.10'
+          save_buildozer_config: false
+          buildozer_version: master
 
-      - name: Clear Path Obstructions (Rid-X)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-          git zip unzip autoconf libtool pkg-config zlib1g-dev \
-          libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
-          libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
-          libexpat1-dev liblzma-dev uuid-dev libgmp-dev
-          
-          sudo rm -rf /usr/local/lib/android/sdk/ndk
-          sudo apt-get remove -y r-base-dev pkgconf
-
-      - name: Install The Hammer
-        run: |
-          pip install --upgrade pip
-          pip install "cython<3.0" virtualenv buildozer
-
-      - name: 13579 : LICENSE INJECTION (Through-The-Wall)
-        run: |
-          # Manually create the license directory to kill the loop
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          # Inject the standard Google SDK license hash
-          echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb743130d6db8634d873\n24333f8a63b6825ea9d5513f8e0704d41b971c13" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n5046675910430806541b11ad891436a50788e92b" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-
-      - name: Strike The Anvil
-        run: |
-          export PATH=$PATH:$HOME/.local/bin
-          unset ANDROID_NDK_ROOT
-          unset ANDROID_SDK_ROOT
-          
-          # FORCE NON-INTERACTIVE
-          export BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME=1
-          
-          # Strike with -v to catch the specific NDK link failure if it occurs
-          buildozer -v android debug
-        env:
-          BUILDOZER_WARN_ON_ROOT: 0
-
-      - name: Extract CITIZEN_X
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CITIZEN_X_Body
+          name: CITIZEN_X_Binary
           path: bin/*.apk
