@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -26,8 +27,9 @@ jobs:
 
       - name: Build with Buildozer
         run: |
+          # Kill the previous failed state
           rm -rf .buildozer
-          # THE HEARTBEAT: Prevents GitHub from killing the process during long compiles
+          # FORCE THE STRIKE: bypass audio dependencies
           yes | buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
