@@ -9,9 +9,13 @@ version = 0.1
 requirements = python3,kivy==2.3.0,sqlite3,hostpython3,cython==0.29.33,pyjnius==1.6.0
 
 orientation = portrait
+# Reduced to single arch to prevent disk bloat
 android.archs = arm64-v8a
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.accept_sdk_license = True
 android.skip_update = False
+
+[buildozer]
+log_level = 2
