@@ -6,23 +6,17 @@ source.dir = .
 source.include_exts = py,png,db
 version = 0.1
 
-# EXPLICIT REQUIREMENTS: No SDL2_ttf, no SDL2_mixer, no SDL2_image
-requirements = python3,kivy==2.3.0,sqlite3,hostpython3
-
-# THE FIX: Force the build to skip the font-engine dependency
-android.no_byte_compile_python = True
-p4a.branch = master
+# PINNED REQUIREMENTS FOR STABILITY
+requirements = python3,kivy==2.3.0,sqlite3,hostpython3,cython==0.29.33,pyjnius==1.6.0
 
 orientation = portrait
 fullscreen = 0
 android.archs = arm64-v8a
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
-icon.filename = %(source.dir)s/CITIZEN_X.png
-
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.skip_update = False
+android.skip_update = True
 android.accept_sdk_license = True
 
 [buildozer]
