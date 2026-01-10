@@ -6,7 +6,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -28,8 +27,13 @@ jobs:
       - name: Build with Buildozer
         run: |
           rm -rf .buildozer
-          # The hammer strike
           yes | buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CITIZEN_X_Binary
+          path: bin/*.apk
           
