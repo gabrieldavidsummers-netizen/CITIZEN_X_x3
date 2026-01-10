@@ -21,7 +21,6 @@ jobs:
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
           libexpat1-dev liblzma-dev uuid-dev libgmp-dev
           
-          # Force remove the pre-installed NDK that is bricking the build
           sudo rm -rf /usr/local/lib/android/sdk/ndk
           sudo apt-get remove -y r-base-dev pkgconf
 
@@ -30,22 +29,26 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" virtualenv buildozer
 
+      - name: 13579 : LICENSE INJECTION (Through-The-Wall)
+        run: |
+          # Manually create the license directory to kill the loop
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          # Inject the standard Google SDK license hash
+          echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb743130d6db8634d873\n24333f8a63b6825ea9d5513f8e0704d41b971c13" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n5046675910430806541b11ad891436a50788e92b" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
       - name: Strike The Anvil
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          
-          # UNSET HOST LEAKAGE
           unset ANDROID_NDK_ROOT
           unset ANDROID_SDK_ROOT
           
-          # SILENCE THE NOISE: Force non-interactive and minimal output
-          # This prevents the SDK manager from dumping the 1000-line manifest
-          yes | buildozer android signatures || true
+          # FORCE NON-INTERACTIVE
+          export BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME=1
           
-          # Strike
+          # Strike with -v to catch the specific NDK link failure if it occurs
           buildozer -v android debug
         env:
-          BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
           BUILDOZER_WARN_ON_ROOT: 0
 
       - name: Extract CITIZEN_X
