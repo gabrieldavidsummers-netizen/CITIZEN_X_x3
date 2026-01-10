@@ -7,16 +7,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Free Disk Space (Scorched Earth)
+      - name: 1. SCORCHED EARTH (Clear Disk Space)
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: System Header Strike
+      - name: 2. SYSTEM ANCHORS (Install Headers)
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
@@ -24,26 +20,38 @@ jobs:
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev libdb5.3-dev \
           libexpat1-dev liblzma-dev uuid-dev openjdk-17-jdk
 
-      - name: Manual SDK Strike
+      - name: 3. SDK MANIFEST DESTINY (Manual Setup)
         run: |
+          # Construct the paths Buildozer expects
           mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
           curl -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q cmdline.zip
           mv cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
+          
+          # Create Legacy Links
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          
+          # Accept Licenses before Buildozer starts
+          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
 
-      - name: Execute Build (With Clang Patch)
+      - name: 4. THE ANVIL STRIKE (Execute Build)
         run: |
           pip install --user --upgrade buildozer cython==0.29.33 virtualenv
           export PATH=$PATH:$HOME/.local/bin
           
-          # PATCH: Force compiler to ignore GCC-specific flags in a Clang environment
+          # FORCE COMPILER PATCH: Ignore the '-print-multi-os-directory' error
           export CFLAGS="-Wno-error=unused-command-line-argument -Wno-unused-command-line-argument"
           export CXXFLAGS="-Wno-error=unused-command-line-argument -Wno-unused-command-line-argument"
           
-          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
+          # Ensure buildozer.spec exists and is configured for single-arch
           buildozer android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+
+      - name: 5. EXTRACT BODY (Upload APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CITIZEN_X_Binary
+          path: bin/*.apk
           
