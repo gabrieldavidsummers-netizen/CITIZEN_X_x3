@@ -9,11 +9,7 @@ jobs:
 
       - name: Free Disk Space (Scorched Earth)
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,7 +24,7 @@ jobs:
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev libdb5.3-dev \
           libexpat1-dev liblzma-dev uuid-dev openjdk-17-jdk
 
-      - name: Build Command-Line Tools (Manual)
+      - name: Manual SDK Strike
         run: |
           mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
           curl -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
@@ -37,18 +33,17 @@ jobs:
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
-      - name: Execute Build
+      - name: Execute Build (With Clang Patch)
         run: |
           pip install --user --upgrade buildozer cython==0.29.33 virtualenv
           export PATH=$PATH:$HOME/.local/bin
+          
+          # PATCH: Force compiler to ignore GCC-specific flags in a Clang environment
+          export CFLAGS="-Wno-error=unused-command-line-argument -Wno-unused-command-line-argument"
+          export CXXFLAGS="-Wno-error=unused-command-line-argument -Wno-unused-command-line-argument"
+          
           yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
           buildozer android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
-
-      - name: Upload Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: CITIZEN_X_Binary
-          path: bin/*.apk
           
