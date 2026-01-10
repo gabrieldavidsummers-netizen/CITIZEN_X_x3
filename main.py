@@ -13,7 +13,6 @@ from kivy.clock import Clock
 # --- SECTION 1: SOVEREIGN CONSTANTS ---
 SIG = "13579"
 FOUNDATION = 135792468
-# THE 5 PILLARS: Your dehydrated keys
 PILLARS = {
     "Pillar 1": 609, 
     "Pillar 2": 5150, 
@@ -33,17 +32,14 @@ REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars
 def load_lexicon_from_db():
     db_path = "lexicon.db"
     word_list = []
-    
     if os.path.exists(db_path):
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT word FROM vault")
-            rows = cursor.fetchall()
-            word_list = [row[0].lower().strip() for row in rows if row[0]]
+            word_list = [row[0].lower().strip() for row in cursor.fetchall() if row[0]]
             conn.close()
-        except Exception as e:
-            print(f"DATABASE_ERROR: {e}")
+        except: pass
     
     if not word_list:
         word_list = ["citizen", "x", "sovereign", "engine", "forge"]
@@ -53,7 +49,6 @@ def load_lexicon_from_db():
     shuffled = list(unique)
     random.shuffle(shuffled)
     id_pool = random.sample(range(10000, 99999), len(shuffled))
-    
     lex = {str(id_val): word for id_val, word in zip(id_pool, shuffled)}
     rev_lex = {word: str(id_val) for id_val, word in zip(id_pool, shuffled)}
     return lex, rev_lex
@@ -84,75 +79,37 @@ def decrypt_from_psi(psi_string, pillar_name="Pillar 1"):
                 target_id = str(int(raw_nums) - FOUNDATION - shift)
                 word = LEXICON.get(target_id, "???")
                 decoded.append(word.upper())
-            except:
-                decoded.append("ERR")
-        else:
-            decoded.append(token.upper())
+            except: decoded.append("ERR")
+        else: decoded.append(token.upper())
     return " ".join(decoded)
 
-# --- SECTION 4: INTERFACE ---
 class CitizenXApp(App):
     def build(self):
         self.title = "CITIZEN_X"
         Window.clearcolor = (0.05, 0.05, 0.05, 1)
         layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
-        
-        # STATUS HEADER
-        self.status_label = Label(
-            text="[ CITIZEN_X : SIG-13579 ]", 
-            color=(0, 1, 0, 1), 
-            size_hint_y=None, height=50, font_size='22sp'
-        )
+        self.status_label = Label(text="[ CITIZEN_X : SIG-13579 ]", color=(0, 1, 0, 1), size_hint_y=None, height=50, font_size='22sp')
         layout.add_widget(self.status_label)
-
-        # PILLAR SELECTOR (The Dehydrated Key Switch)
-        self.pillar_selector = Spinner(
-            text='Pillar 1',
-            values=list(PILLARS.keys()),
-            size_hint=(1, None),
-            height=50,
-            background_color=(0.2, 0.2, 0.2, 1),
-            color=(1, 1, 1, 1)
-        )
+        self.pillar_selector = Spinner(text='Pillar 1', values=list(PILLARS.keys()), size_hint=(1, None), height=50)
         layout.add_widget(self.pillar_selector)
-        
-        # INPUT FIELD (With Swipe/Flow Fix)
-        self.input_box = TextInput(
-            background_color=(0.1, 0.1, 0.1, 1), 
-            foreground_color=(1, 1, 1, 1), 
-            font_size='18sp',
-            hint_text="[ FEED_COMMANDS_HERE ]",
-            input_type='text',
-            keyboard_suggestions=True,
-            use_bubble=True,
-            multiline=True
-        )
+        self.input_box = TextInput(background_color=(0.1, 0.1, 0.1, 1), foreground_color=(1, 1, 1, 1), font_size='18sp', input_type='text', keyboard_suggestions=True, multiline=True)
         layout.add_widget(self.input_box)
-        
         btn_box = BoxLayout(size_hint_y=None, height=70, spacing=10)
-        btn_enc = Button(text="ENCRYPT", background_color=(0.1, 0.5, 0.1, 1), font_size='18sp')
+        btn_enc = Button(text="ENCRYPT", background_color=(0.1, 0.5, 0.1, 1))
         btn_enc.bind(on_press=lambda x: self.process(True))
-        btn_dec = Button(text="DECRYPT", background_color=(0.5, 0.1, 0.1, 1), font_size='18sp')
+        btn_dec = Button(text="DECRYPT", background_color=(0.5, 0.1, 0.1, 1))
         btn_dec.bind(on_press=lambda x: self.process(False))
-        
-        btn_box.add_widget(btn_enc)
-        btn_box.add_widget(btn_dec)
+        btn_box.add_widget(btn_enc); btn_box.add_widget(btn_dec)
         layout.add_widget(btn_box)
-
         Clock.schedule_interval(self.auto_pulse, 3.0)
         return layout
 
     def auto_pulse(self, dt):
-        words = ["sovereign", "engine", "citizen", "negentropy", "frequency"]
-        pulse_word = random.choice(words)
-        # Pulse uses current selected pillar to show live transformation
-        self.status_label.text = f"[ {encrypt_to_psi(pulse_word, self.pillar_selector.text)} ]"
+        self.status_label.text = f"[ {encrypt_to_psi('sovereign', self.pillar_selector.text)} ]"
 
     def process(self, encrypt):
-        text = self.input_box.text
-        pillar = self.pillar_selector.text
-        if text:
-            self.input_box.text = encrypt_to_psi(text, pillar) if encrypt else decrypt_from_psi(text, pillar)
+        if self.input_box.text:
+            self.input_box.text = encrypt_to_psi(self.input_box.text, self.pillar_selector.text) if encrypt else decrypt_from_psi(self.input_box.text, self.pillar_selector.text)
 
 if __name__ == "__main__":
     CitizenXApp().run()
