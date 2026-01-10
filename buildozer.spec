@@ -5,18 +5,12 @@ package.domain = org.synthesis
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json,db
 version = 0.1
-
-requirements = python3,kivy==2.3.0,sqlite3,requests,certifi
-
+requirements = python3,kivy==2.3.0,sqlite3
 orientation = portrait
 fullscreen = 0
 android.archs = arm64-v8a, armeabi-v7a
-android.allow_backup = True
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
-
-# ASSET ANCHORS
 icon.filename = %(source.dir)s/CITIZEN_X.png
-
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
