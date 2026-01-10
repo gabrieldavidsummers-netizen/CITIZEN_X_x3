@@ -10,7 +10,6 @@ from kivy.uix.spinner import Spinner
 from kivy.core.window import Window
 from kivy.clock import Clock
 
-# --- SECTION 1: SOVEREIGN CONSTANTS ---
 SIG = "13579"
 FOUNDATION = 135792468
 PILLARS = {
@@ -28,7 +27,6 @@ VARIANT_MAP = {
 }
 REVERSE_MAP = {char: num for num, chars in VARIANT_MAP.items() for char in chars}
 
-# --- SECTION 2: THE DATABASE LEXICON ---
 def load_lexicon_from_db():
     db_path = "lexicon.db"
     word_list = []
@@ -40,10 +38,8 @@ def load_lexicon_from_db():
             word_list = [row[0].lower().strip() for row in cursor.fetchall() if row[0]]
             conn.close()
         except: pass
-    
     if not word_list:
         word_list = ["citizen", "x", "sovereign", "engine", "forge"]
-
     random.seed(13579)
     unique = sorted(list(set(word_list)))
     shuffled = list(unique)
@@ -55,7 +51,6 @@ def load_lexicon_from_db():
 
 LEXICON, REVERSE_LEXICON = load_lexicon_from_db()
 
-# --- SECTION 3: CORE TRANSFORMATION ---
 def encrypt_to_psi(plaintext, pillar_name="Pillar 1"):
     shift = PILLARS.get(pillar_name, 609)
     output = []
@@ -65,8 +60,7 @@ def encrypt_to_psi(plaintext, pillar_name="Pillar 1"):
             val = str(FOUNDATION + shift + int(token_id))
             alien = "".join(random.choice(VARIANT_MAP[c]) for c in val)
             output.append(f"{SIG}{alien}")
-        else:
-            output.append(f"[{word}]")
+        else: output.append(f"[{word}]")
     return " ".join(output)
 
 def decrypt_from_psi(psi_string, pillar_name="Pillar 1"):
@@ -90,7 +84,7 @@ class CitizenXApp(App):
         layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
         self.status_label = Label(text="[ CITIZEN_X : SIG-13579 ]", color=(0, 1, 0, 1), size_hint_y=None, height=50, font_size='22sp')
         layout.add_widget(self.status_label)
-        self.pillar_selector = Spinner(text='Pillar 1', values=list(PILLARS.keys()), size_hint=(1, None), height=50)
+        self.pillar_selector = Spinner(text='Pillar 1', values=list(PILLARS.keys()), size_hint=(1, None), height=50, background_color=(0.15, 0.15, 0.15, 1))
         layout.add_widget(self.pillar_selector)
         self.input_box = TextInput(background_color=(0.1, 0.1, 0.1, 1), foreground_color=(1, 1, 1, 1), font_size='18sp', input_type='text', keyboard_suggestions=True, multiline=True)
         layout.add_widget(self.input_box)
