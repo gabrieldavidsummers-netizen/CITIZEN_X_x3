@@ -1,42 +1,48 @@
-name: Build Citizen X
+name: CITIZEN_X_SOVEREIGN_BUILD
 on: [push, workflow_dispatch]
 
 jobs:
-  build:
+  forge:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: 1. SETUP PYTHON (Anchor 3.11)
+      - name: Anchor Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10' # 3.10 is the most stable 'Goldilocks' zone for Buildozer 1.5.0
 
-      - name: 2. SYSTEM ANCHORS (Non-Interactive Forge)
+      - name: Clear Path Obstructions
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-          git zip unzip autoconf libtool pkg-config zlib1g-dev \
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
           libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
-          libexpat1-dev liblzma-dev uuid-dev
+          libexpat1-dev liblzma-dev uuid-dev libgmp-dev
+          # Remove pre-installed conflicting tools
+          sudo apt-get remove -y r-base-dev pkgconf
 
-      - name: 3. THE ANVIL STRIKE
+      - name: Install The Hammer
         run: |
-          pip install --user --upgrade buildozer cython==0.29.33 virtualenv
+          pip install --upgrade pip
+          pip install "cython<3.0" virtualenv  # Cython 3.x bricks many Kivy recipes
+          pip install buildozer
+
+      - name: Strike The Anvil
+        run: |
+          # Force Buildozer to use the tools we just anchored
           export PATH=$PATH:$HOME/.local/bin
+          # Buildozer fix: Ensure it doesn't fail on NDK download headers
+          mkdir -p ~/.buildozer
           
-          # RID-X: STRIP COMPILER FRICTION
-          export CFLAGS="-Wno-error=unused-command-line-argument"
-          
-          # Accept licenses and strike
-          yes | buildozer android signatures || true
+          # Execute the build
           buildozer -v android debug
         env:
-          BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
+          APP_ANDROID_ARCHS: arm64-v8a
+          BUILDOZER_WARN_ON_ROOT: 0
 
-      - name: 4. EXTRACT BODY
+      - name: Extract CITIZEN_X
         uses: actions/upload-artifact@v4
         with:
-          name: CITIZEN_X_Binary
+          name: CITIZEN_X_Body
           path: bin/*.apk
