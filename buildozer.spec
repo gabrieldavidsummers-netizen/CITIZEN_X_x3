@@ -6,8 +6,8 @@ source.dir = .
 source.include_exts = py,png,db
 version = 0.1
 
-# CORE ANCHORS
-requirements = python3,kivy==2.3.0,sqlite3,hostpython3,libffi,cython==0.29.33,pyjnius==1.6.0
+# CORE ANCHORS - Added sqlite3 for NDK linking
+requirements = python3,kivy==2.3.0,hostpython3,libffi,sqlite3,cython==0.29.33,pyjnius==1.6.0
 
 orientation = portrait
 icon.filename = icon.png
