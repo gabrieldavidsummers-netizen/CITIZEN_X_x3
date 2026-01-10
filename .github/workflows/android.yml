@@ -22,14 +22,12 @@ jobs:
 
       - name: Install Build Tools
         run: |
-          pip install --user --upgrade buildozer cython virtualenv
+          pip install --user --upgrade buildozer cython==0.29.33 virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
-          # The anvil strike: Clean and force build
-          rm -rf .buildozer
-          buildozer android debug
+          yes | buildozer android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
