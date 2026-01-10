@@ -7,32 +7,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 1. SETUP PYTHON
+      - name: 1. SETUP PYTHON (Anchor 3.11)
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 2. SYSTEM ANCHORS (Minimalist Forge)
+      - name: 2. SYSTEM ANCHORS (Non-Interactive Forge)
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
+          sudo apt-get install -y --no-install-recommends \
+          git zip unzip autoconf libtool pkg-config zlib1g-dev \
           libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
-          libexpat1-dev liblzma-dev uuid-dev openjdk-17-jdk
+          libexpat1-dev liblzma-dev uuid-dev
 
-      - name: 3. THE ANVIL STRIKE (Direct Execution)
+      - name: 3. THE ANVIL STRIKE
         run: |
-          pip install --upgrade buildozer cython==0.29.33 virtualenv
+          pip install --user --upgrade buildozer cython==0.29.33 virtualenv
           export PATH=$PATH:$HOME/.local/bin
           
-          # RID-X: FORCE SQLITE PATHS FOR HOSTPYTHON
-          export CFLAGS="-I/usr/include/sqlite3 -Wno-error=unused-command-line-argument"
-          export LDFLAGS="-L/usr/lib/x86_64-linux-gnu"
+          # RID-X: STRIP COMPILER FRICTION
+          export CFLAGS="-Wno-error=unused-command-line-argument"
           
-          # Accept licenses silently
+          # Accept licenses and strike
           yes | buildozer android signatures || true
-          
-          # Strike
           buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
