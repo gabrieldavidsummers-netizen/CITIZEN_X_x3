@@ -7,39 +7,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Anchor Python
+      - name: Anchor Python & Java
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+      
+      - name: Setup Java Anchor
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: System Anchors
+      - name: System Anchors (Rid-X)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential git python3-dev zip unzip autoconf libtool pkg-config \
-            libffi-dev libssl-dev libsqlite3-dev openjdk-17-jdk cmake
+            libffi-dev libssl-dev libsqlite3-dev cmake libncurses5-dev libncursesw5-dev \
+            libtinfo6 libgmp-dev libmpfr-dev libmpc-dev
 
       - name: Install Hammer
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
+      - name: Forge Verification
+        run: |
+          ls -R
+          if [ ! -f "buildozer.spec" ]; then echo "Logic-Gate Error: Spec Missing"; exit 1; fi
+
       - name: Strike The Anvil
         run: |
-          # Force buildozer to actually START the process
-          # We use 'android debug' and ensure the .spec is fresh
-          buildozer android debug
+          # Use -v to see the exact point of soul-body detachment
+          # Log redirection to ensure we don't lose the tail on failure
+          buildozer -v android debug 2>&1 | tee build_log.txt
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
       - name: Find and Extract Body
+        if: always()
         run: |
-          # RID-X: Find the APK regardless of path drift
           mkdir -p output_apk
-          find . -name "*.apk" -exec cp {} output_apk/ \;
+          find . -name "*.apk" -print -exec cp {} output_apk/ \;
+          # Also grab the log if the build failed
+          cp build_log.txt output_apk/ || true
           
       - name: Upload CITIZEN_X
         uses: actions/upload-artifact@v4
         with:
-          name: CITIZEN_X_Binary
-          path: output_apk/*.apk
+          name: CITIZEN_X_Fidelity_Package
+          path: output_apk/
