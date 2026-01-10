@@ -15,7 +15,8 @@ jobs:
       - name: Clear Path Obstructions (Rid-X)
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
+          sudo apt-get install -y --no-install-recommends \
+          git zip unzip autoconf libtool pkg-config zlib1g-dev \
           libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
           libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev \
           libexpat1-dev liblzma-dev uuid-dev libgmp-dev
@@ -33,14 +34,15 @@ jobs:
         run: |
           export PATH=$PATH:$HOME/.local/bin
           
-          # UNSET HOST LEAKAGE: Prevent the runner's NDK from infecting the Forge
+          # UNSET HOST LEAKAGE
           unset ANDROID_NDK_ROOT
           unset ANDROID_SDK_ROOT
           
-          # RID-X: Force compiler to ignore the path friction
-          export CFLAGS="-Wno-error=unused-command-line-argument"
+          # SILENCE THE NOISE: Force non-interactive and minimal output
+          # This prevents the SDK manager from dumping the 1000-line manifest
+          yes | buildozer android signatures || true
           
-          # Strike with verbose logging to capture the exact failure if it persists
+          # Strike
           buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
