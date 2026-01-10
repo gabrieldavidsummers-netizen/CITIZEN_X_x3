@@ -6,8 +6,12 @@ source.dir = .
 source.include_exts = py,png,db
 version = 0.1
 
-# SOUL ANCHOR: Include sqlite3 specifically
-requirements = python3,kivy==2.3.0,sqlite3
+# EXPLICIT REQUIREMENTS: No SDL2_ttf, no SDL2_mixer, no SDL2_image
+requirements = python3,kivy==2.3.0,sqlite3,hostpython3
+
+# THE FIX: Force the build to skip the font-engine dependency
+android.no_byte_compile_python = True
+p4a.branch = master
 
 orientation = portrait
 fullscreen = 0
