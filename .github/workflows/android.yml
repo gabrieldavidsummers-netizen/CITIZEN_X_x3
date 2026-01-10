@@ -10,44 +10,39 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Break APT Locks
+      - name: System Anchors & Lock Breaker
         run: |
           sudo fuser -kuv /var/lib/dpkg/lock-frontends || true
-          sudo fuser -kuv /var/lib/apt/lists/lock || true
           sudo rm -f /var/lib/dpkg/lock-frontends
-          sudo dpkg --configure -a
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git python3-dev zip unzip autoconf libtool pkg-config \
+            libffi-dev libssl-dev libsqlite3-dev openjdk-17-jdk cmake
 
-      - name: Install System Dependencies
+      - name: Anchor Android SDK (Manual Extraction)
         run: |
-          # Robust retry loop for apt-get
-          for i in {1..5}; do
-            sudo apt-get update && \
-            sudo apt-get install -y \
-              build-essential git python3-dev ffmpeg libsdl2-dev \
-              libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-              zlib1g-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
-              gstreamer1.0-plugins-good libsqlite3-dev sqlite3 bzip2 \
-              libbz2-dev libffi-dev libssl-dev openjdk-17-jdk zip unzip \
-              autoconf libtool pkg-config cmake && break || \
-            (echo "Retry $i..." && sleep 5)
-          done
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          # Pre-accept licenses to stop the manifest dump
+          echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb743130d6db8634d873" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          # Touch repositories.cfg to stop sdkmanager warnings
+          mkdir -p ~/.android && touch ~/.android/repositories.cfg
 
-      - name: Install Buildozer
+      - name: Install Hammer & Cython
         run: |
           pip install --upgrade pip
-          pip install buildozer
-          pip install cython==0.29.33
+          pip install "cython<3.0" buildozer virtualenv
 
-      - name: Execute Build
+      - name: Strike The Anvil
         run: |
-          yes | buildozer android debug
+          export PATH=$PATH:$HOME/.local/bin
+          # Force buildozer to stay quiet and use existing SDK
+          buildozer -v android debug | grep -v "Fetch remote repository"
         env:
-          ACCEPT_SDK_LICENSE: "True"
+          BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
-      - name: Upload Artifact
+      - name: Extract CITIZEN_X
         uses: actions/upload-artifact@v4
         with:
           name: CITIZEN_X_Binary
