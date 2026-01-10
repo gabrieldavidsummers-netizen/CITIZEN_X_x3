@@ -6,8 +6,9 @@ source.dir = .
 source.include_exts = py,png,db
 version = 0.1
 
-# CORE ANCHORS - RID-X Distillation
-requirements = python3==3.11.9,kivy==2.3.0,sqlite3,hostpython3==3.11.9,libffi,pyjnius==1.6.0
+# CORE ANCHORS - RID-X DISTILLATION
+# Removed version pinning for python/hostpython to allow Buildozer to use internal stable recipes
+requirements = python3,kivy==2.3.0,sqlite3,hostpython3,libffi,pyjnius==1.6.0
 
 orientation = portrait
 icon.filename = icon.png
