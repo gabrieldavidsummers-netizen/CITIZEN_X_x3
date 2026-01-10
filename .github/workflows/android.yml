@@ -37,10 +37,18 @@ jobs:
 
       - name: Build with Buildozer
         run: |
+          # ANCHORING TO PRE-INSTALLED SDK
           export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
+          export PATH=$PATH:$HOME/.local/bin
+          
+          # Pre-accepting licenses in the runner's SDK path
           mkdir -p "$ANDROID_HOME/licenses" || true
           echo -e "24333f8a63b682569cc481586c2aa69473b61310" > "$ANDROID_HOME/licenses/android-sdk-license"
-          yes | buildozer -v android debug
+          
+          # FORCING BUILDOZER TO USE SYSTEM TOOLS
+          # This prevents the 8-minute unzip/fetch hang
+          yes | APP_ANDROID_SDK=$ANDROID_HOME APP_ANDROID_NDK=$ANDROID_NDK_HOME buildozer -v android debug
         env:
           BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
 
