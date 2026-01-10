@@ -3,23 +3,35 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        # FIXED: Correct repository handle
-        uses: ArtemSBulgakov/buildozer-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          buildozer_version: master
-          python_version: 3.10
-          # This action handles all SDK/NDK dependencies internally
-          command: buildozer -v android debug
-          repository_read_token: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.10'
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: CITIZEN_X_Binary
-          path: bin/*.apk
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
+          libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+          libsqlite3-dev tk-dev libbz2-dev libreadline-dev libgdbm-dev libdb5.3-dev \
+          libexpat1-dev liblzma-dev uuid-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good
+
+      - name: Install Buildozer
+        run: |
+          pip install --user --upgrade buildozer cython virtualenv
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build with Buildozer
+        run: |
+          # Clear the path for a fresh strike
+          rm -rf .buildozer
+          # The command that bypasses the prompt wall
+          yes | buildozer -v android debug
+        env:
+          BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
           
