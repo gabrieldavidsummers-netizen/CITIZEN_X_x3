@@ -6,13 +6,21 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.uix.spinner import Spinner
 from kivy.core.window import Window
 from kivy.clock import Clock
 
 # --- SECTION 1: SOVEREIGN CONSTANTS ---
 SIG = "13579"
 FOUNDATION = 135792468
-PILLARS = {"1": 609, "2": 5150, "3": 1978, "4": 666, "5": 3092}
+# THE 5 PILLARS: Your dehydrated keys
+PILLARS = {
+    "Pillar 1": 609, 
+    "Pillar 2": 5150, 
+    "Pillar 3": 1978, 
+    "Pillar 4": 666, 
+    "Pillar 5": 3092
+}
 
 VARIANT_MAP = {
     '0':['0','o','O','⁰'],'1':['1','¹'],'2':['2','²'],
@@ -40,12 +48,10 @@ def load_lexicon_from_db():
     if not word_list:
         word_list = ["citizen", "x", "sovereign", "engine", "forge"]
 
-    random.seed(13579) # The Genetic Seed
+    random.seed(13579)
     unique = sorted(list(set(word_list)))
     shuffled = list(unique)
     random.shuffle(shuffled)
-    
-    # Range 10000-99999 ensures 5-digit IDs to match your signature format
     id_pool = random.sample(range(10000, 99999), len(shuffled))
     
     lex = {str(id_val): word for id_val, word in zip(id_pool, shuffled)}
@@ -55,8 +61,8 @@ def load_lexicon_from_db():
 LEXICON, REVERSE_LEXICON = load_lexicon_from_db()
 
 # --- SECTION 3: CORE TRANSFORMATION ---
-def encrypt_to_psi(plaintext, pillar_key="1"):
-    shift = PILLARS.get(pillar_key, 609)
+def encrypt_to_psi(plaintext, pillar_name="Pillar 1"):
+    shift = PILLARS.get(pillar_name, 609)
     output = []
     for word in plaintext.lower().split():
         token_id = REVERSE_LEXICON.get(word)
@@ -68,8 +74,8 @@ def encrypt_to_psi(plaintext, pillar_key="1"):
             output.append(f"[{word}]")
     return " ".join(output)
 
-def decrypt_from_psi(psi_string, pillar_key="1"):
-    shift = PILLARS.get(pillar_key, 609)
+def decrypt_from_psi(psi_string, pillar_name="Pillar 1"):
+    shift = PILLARS.get(pillar_name, 609)
     decoded = []
     for token in psi_string.split():
         if token.startswith(SIG):
@@ -91,16 +97,26 @@ class CitizenXApp(App):
         Window.clearcolor = (0.05, 0.05, 0.05, 1)
         layout = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        # PSI-SIGNATURE FEED
+        # STATUS HEADER
         self.status_label = Label(
             text="[ CITIZEN_X : SIG-13579 ]", 
             color=(0, 1, 0, 1), 
             size_hint_y=None, height=50, font_size='22sp'
         )
         layout.add_widget(self.status_label)
+
+        # PILLAR SELECTOR (The Dehydrated Key Switch)
+        self.pillar_selector = Spinner(
+            text='Pillar 1',
+            values=list(PILLARS.keys()),
+            size_hint=(1, None),
+            height=50,
+            background_color=(0.2, 0.2, 0.2, 1),
+            color=(1, 1, 1, 1)
+        )
+        layout.add_widget(self.pillar_selector)
         
-        # KEYBOARD_FLOW FIX: input_type='text' and keyboard_suggestions=True
-        # multiline=True and use_bubble enable full Android keyboard features
+        # INPUT FIELD (With Swipe/Flow Fix)
         self.input_box = TextInput(
             background_color=(0.1, 0.1, 0.1, 1), 
             foreground_color=(1, 1, 1, 1), 
@@ -123,20 +139,20 @@ class CitizenXApp(App):
         btn_box.add_widget(btn_dec)
         layout.add_widget(btn_box)
 
-        # Automatic Numerical Feed: Pulses the status bar every 2 seconds
-        Clock.schedule_interval(self.auto_pulse, 2.0)
+        Clock.schedule_interval(self.auto_pulse, 3.0)
         return layout
 
     def auto_pulse(self, dt):
         words = ["sovereign", "engine", "citizen", "negentropy", "frequency"]
         pulse_word = random.choice(words)
-        self.status_label.text = f"[ {encrypt_to_psi(pulse_word)} ]"
+        # Pulse uses current selected pillar to show live transformation
+        self.status_label.text = f"[ {encrypt_to_psi(pulse_word, self.pillar_selector.text)} ]"
 
     def process(self, encrypt):
         text = self.input_box.text
+        pillar = self.pillar_selector.text
         if text:
-            self.input_box.text = encrypt_to_psi(text) if encrypt else decrypt_from_psi(text)
+            self.input_box.text = encrypt_to_psi(text, pillar) if encrypt else decrypt_from_psi(text, pillar)
 
 if __name__ == "__main__":
     CitizenXApp().run()
-            
